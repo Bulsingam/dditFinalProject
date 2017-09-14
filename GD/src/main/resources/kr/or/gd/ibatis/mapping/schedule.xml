@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map  2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="schedule">
+	<typeAlias alias="projectScheduleVO" type="kr.or.gd.vo.ProjectScheduleVO"/>
+	
+    <insert id="insertSchedule" parameterClass="projectScheduleVO">
+    	INSERT INTO
+		PRO_SCHEDULE(
+			SCHE_SEQ,
+			SCHE_NAME,
+			SCHE_STARTDATE,
+			SCHE_ENDDATE,
+			SCHE_PROID,
+			SCHE_EMP,
+			SCHE_CONT
+		)
+		VALUES(
+			PRO_SCHE_SEQ.NEXTVAL,
+			#sche_name#,
+			#sche_startdate#,
+			#sche_enddate#,
+			#sche_proid#,
+			#sche_emp#,
+			#sche_cont#
+		)
+    </insert>
+    
+    <!-- 
+    	프로젝트에 참여한 각 Team원들의 스케줄 리스트를 불러오는 Query
+    	STARTDATE와 ENDDATE는 Fullcalendar에 추가할 때 오류가 발생되지 
+    	않도록 출력방식을 바꾼다.(YYYY-MM-DD)
+     -->
+    <select id="scheduleList" resultClass="java.util.HashMap" parameterClass="string">
+		SELECT SCHE_SEQ,
+			   SCHE_NAME,
+			   TO_CHAR(SCHE_STARTDATE, 'YYYY-MM-DD')SCHE_STARTDATE,
+			   TO_CHAR(SCHE_ENDDATE, 'YYYY-MM-DD')SCHE_ENDDATE,
+		       SCHE_PROID,
+		       EMP_NAME,
+		       SCHE_EMP,
+		       SCHE_CONT
+		FROM   PRO_SCHEDULE
+		INNER JOIN EMPLOYEE 
+		ON PRO_SCHEDULE.SCHE_EMP = EMPLOYEE.EMP_NUM
+		WHERE  SCHE_PROID = #pro_id#
+	</select>
+    
+    <update id="updateSchedule" parameterClass="projectScheduleVO">
+    	UPDATE PRO_SCHEDULE
+		SET   SCHE_NAME = #sche_name#,
+		      SCHE_STARTDATE = #sche_startdate#,
+		      SCHE_ENDDATE = #sche_enddate#,
+		      SCHE_CONT = #sche_cont#,
+		      SCHE_EMP = #sche_emp#
+		WHERE SCHE_SEQ = #sche_seq#
+    </update>
+    
+    <delete id="deleteSchedule" parameterClass="string">
+    	DELETE
+		FROM  PRO_SCHEDULE
+		WHERE SCHE_SEQ = #sche_seq#
+    </delete>
+</sqlMap>

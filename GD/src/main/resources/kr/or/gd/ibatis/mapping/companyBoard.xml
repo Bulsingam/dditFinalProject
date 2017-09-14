@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap   
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map  2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="comboard">
+	<typeAlias alias="comboardVO" type="kr.or.gd.vo.CompanyBoardVO"/>
+	<typeAlias alias="fileitemVO" type="kr.or.gd.vo.FileItemVO"/>
+	<sql id="selectAll">
+		SELECT *
+		FROM COMPANY
+		WHERE COM_STA = 'Y'
+	</sql>
+	
+	<sql id="searchCondition">
+		<dynamic prepend="AND">
+<!-- 		명시된 프로퍼티속성값이 null인지 쳌 -->
+			<isNotEmpty property="search_keyword">
+				<isEqual property="search_keycode" compareValue="TOTAL" open="(" close=")">
+				
+				    COM_TITLE LIKE '%'|| #search_keyword#||'%'
+				    OR COM_CONT LIKE '%'||#search_keyword#||'%'
+				    OR EMP_NAME  LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="TITLE">
+					COM_TITLE LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="CONTENT">
+					COM_CONT LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="WRITER">
+					EMP_NAME LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="EMP_NUMER">
+					EMP_NUM  LIKE  '%'||#search_keyword#||'%'
+				</isEqual>
+			</isNotEmpty>
+		</dynamic>
+	</sql>
+	
+	<select id="comboardList"  parameterClass="map" resultClass="java.util.HashMap">
+					
+			SELECT B.*
+		  FROM (SELECT ROWNUM rnum, a.*
+			FROM (SELECT a.*
+                , e.*
+                 FROM COMPANY a LEFT OUTER JOIN EMPLOYEE e ON(a.COM_WRITER = e.EMP_NUM)
+                 WHERE a.COM_STA = 'Y'
+                 <include refid="searchCondition"/>
+		         ORDER BY COM_POSTGROUP, COM_POSTSEQ DESC) A) B
+		<![CDATA[ 
+		WHERE B.rnum <= #startCount# 
+ 		  AND B.rnum >= #endCount# 
+		]]> 
+		ORDER BY B.rnum DESC
+		
+		
+	
+	</select>
+	
+	<select id="comboardInfo" parameterClass="map" resultClass="java.util.HashMap">
+	    	SELECT a.COM_POSTNUM
+    		 , a.COM_TITLE
+    		 , a.COM_WRITER
+    		 , DBMS_LOB.SUBSTR(a.COM_CONT, 4000, 1) AS COM_CONT
+    		 , a.COM_VIEWHIT
+    		 , a.COM_REGDATE
+    		 , a.COM_POSTGROUP
+    		 , a.COM_POSTDEP
+    		 , a.COM_POSTSEQ
+    		 , f.FILE_SEQ
+    		 , f.FILE_POSTNUM
+    		 , f.FILE_NAME
+			 , f.FILE_SAVENAME
+			 , e.EMP_NAME
+    	  FROM COMPANY a LEFT OUTER JOIN COM_FILE f ON(a.COM_POSTNUM = f.FILE_POSTNUM)
+    	  LEFT JOIN EMPLOYEE e ON(a.COM_WRITER = e.EMP_NUM)
+    	 WHERE COM_STA = 'Y'
+    	   AND COM_POSTNUM = #com_postnum#
+	</select>
+	
+	<insert id="insertReplyComboard" parameterClass="comboardVO">
+		<selectKey resultClass="string" keyProperty="com_postnum">
+			SELECT COMPANY_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+			INSERT INTO COMPANY( COM_POSTNUM
+		                       , COM_TITLE
+		                       , COM_CONT
+		                       , COM_WRITER
+		                       , COM_POSTGROUP
+		                       , COM_POSTDEP
+		                       , COM_POSTSEQ)
+		               VALUES ( #com_postnum#
+		                      , #com_title#
+		                      , #com_cont#
+		                      , #com_writer#
+		                      , #com_postgroup#
+		                      , #com_postdep#
+		                      , #com_postseq#)
+	</insert>
+	
+	<update id="updateComboardInfo" parameterClass="comboardVO">
+		UPDATE COMPANY
+		SET COM_TITLE=#com_title#
+		,COM_CONT=#com_cont#
+		WHERE COM_POSTNUM=#com_postnum#
+	</update>
+		
+	<select id="fileItemInfo" parameterClass="map" resultClass="fileitemVO">
+		SELECT *
+		  FROM COM_FILE
+		 WHERE FILE_SEQ = #file_seq#
+	</select>
+	
+	<update id="deleteComboardInfo" parameterClass="map">
+		UPDATE COMPANY
+		SET COM_STA = 'N'
+		WHERE COM_POSTNUM=#com_postnum#
+	</update>
+
+	<update id="updateFileDownHit" parameterClass="map">
+		UPDATE COM_FILE
+		  SET FILE_DOWNHIT = FILE_DOWNHIT + 1
+		 WHERE FILE_SEQ = #file_seq#
+	</update>
+	<insert id="insertComBoInfo" parameterClass="comboardVO">
+		<selectKey resultClass="string" keyProperty="com_postnum">
+			SELECT 
+			COMPANY_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO COMPANY( COM_POSTNUM  
+							,COM_TITLE    
+							,COM_CONT     
+							,COM_WRITER
+							,COM_POSTGROUP)
+						VALUES (#com_postnum#  
+								,#com_title#    
+								,#com_cont#     
+								,#com_writer#
+								,#com_postnum#)
+						
+		
+	</insert>
+	
+	
+	<select id="incrementSeq" parameterClass="comboardVO" resultClass="string">
+		SELECT MAX(COM_POSTSEQ) + 1
+		  FROM COMPANY
+		 WHERE COM_POSTGROUP = #com_postgroup#
+	</select>
+	
+	<update id="updateSeq" parameterClass="comboardVO">
+		UPDATE COMPANY
+		   SET COM_POSTSEQ = COM_POSTSEQ + 1
+		 WHERE COM_POSTGROUP = #com_postgroup#
+		   AND COM_POSTSEQ > #com_postseq#
+	</update>
+	
+	
+		<select id="totalCount" parameterClass="map" resultClass="int">
+		SELECT COUNT(*)
+		 FROM COMPANY a LEFT OUTER JOIN EMPLOYEE e ON(a.COM_WRITER = e.EMP_NUM)
+		 WHERE COM_STA = 'Y'
+		 <include refid="searchCondition"/>
+	</select>
+	
+		<insert id="insertFileItem" parameterClass="fileitemVO">
+		<selectKey keyProperty="file_seq">
+			SELECT COM_FILE_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO COM_FILE(FILE_SEQ,
+							 FILE_NAME,
+							 FILE_SAVENAME,
+							 FILE_TYPE,
+							 FILE_SIZE,
+							 FILE_POSTNUM)
+					 VALUES( #file_seq#,
+							 #file_name#,
+							 #file_savename#,
+							 #file_type#,
+							 #file_size#,
+							 #file_postnum#)
+	</insert>
+
+
+	<update id="uphit" parameterClass="map">
+		UPDATE COMPANY
+		   SET COM_VIEWHIT = com_viewhit + 1
+		 WHERE COM_POSTNUM = #com_postnum#
+		</update>
+	
+</sqlMap>   

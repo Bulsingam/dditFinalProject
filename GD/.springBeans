@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beansProjectDescription>
+	<version>1</version>
+	<pluginVersion><![CDATA[3.6.3.201411271034-RELEASE]]></pluginVersion>
+	<configSuffixes>
+		<configSuffix><![CDATA[xml]]></configSuffix>
+	</configSuffixes>
+	<enableImports><![CDATA[false]]></enableImports>
+	<configs>
+	</configs>
+	<autoconfigs>
+		<config>src/main/resources/kr/or/gd/spring/config/application-i18n.xml</config>
+		<config>src/main/resources/kr/or/gd/spring/config/application-ibatis.xml</config>
+		<config>src/main/resources/kr/or/gd/spring/config/application-viewresolver.xml</config>
+		<config>src/main/resources/kr/or/gd/spring/config/application-views.xml</config>
+		<config>src/main/webapp/WEB-INF/context/mvc-tiles.xml</config>
+		<config>src/main/resources/kr/or/gd/spring/config/application-file.xml</config>
+		<config>src/main/webapp/WEB-INF/context/mvc-config.xml</config>
+		<config>src/main/webapp/WEB-INF/context/mvc-msgconverter.xml</config>
+		<config>src/main/resources/kr/or/gd/spring/config/application-config.xml</config>
+		<config>src/main/webapp/WEB-INF/context/mvc-transaction.xml</config>
+	</autoconfigs>
+	<configSets>
+	</configSets>
+</beansProjectDescription>

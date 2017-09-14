@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tiles-definitions PUBLIC
+       "-//Apache Software Foundation//DTD Tiles Configuration 2.1//EN"
+       "http://tiles.apache.org/dtds/tiles-config_2_1.dtd">
+<tiles-definitions>
+
+	<definition name="main" template="/WEB-INF/view/mainTemplate.jsp">
+<!-- 		<put-attribute name="title" value="우리팀 최고"></put-attribute> -->
+		<put-attribute name="header" value="/WEB-INF/view/layout/header.jsp"></put-attribute>
+		<put-attribute name="content_header" value="/WEB-INF/view/content_header.jsp"></put-attribute>
+		<put-attribute name="left" value="/WEB-INF/view/layout/left.jsp"></put-attribute>
+		<put-attribute name="footer" value="/WEB-INF/view/layout/footer.jsp"></put-attribute>
+	</definition>
+	<definition name="main/*" extends="main">
+		<put-attribute name="content" value="/WEB-INF/view/main/{1}.jsp"></put-attribute>
+	</definition>
+	<!-- 약어로 
+	anonymousBoard anyBoard
+	approval apr
+	archive arc
+	companyBoard comBoard
+	document doc
+	employee emp
+	form form
+	humanResource hr
+	join join
+	noticeBoard noti
+	project pro
+	projectArchice proArc
+	projectBoard proBoard
+	http://lohost/employee/insertEmployeeView.do
+	http://lohost/humanResource/insertEmployeeView.do
+	
+	 -->
+	 
+	<definition name="join/*" >
+		<put-attribute name="content" value="/WEB-INF/view/join/login.jsp"></put-attribute>
+	</definition>
+	<definition name="anonymousBoard/*" extends="main">
+		<put-attribute name="content" value="/WEB-INF/view/anonymousBoard/{1}.jsp"></put-attribute>
+	</definition>
+	<definition name="approval/*" extends="main">
+		<put-attribute name="content" value="/WEB-INF/view/approval/{1}.jsp"></put-attribute>
+	</definition>
+	<definition name="archive/*" extends="main">
+		<put-attribute name="content" value="/WEB-INF/view/archive/{1}.jsp"></put-attribute>
+	</definition>
+	<definition name="companyBoard/*" extends="main">
+		<put-attribute name="content" value="/WEB-INF/view/companyBoard/{1}.jsp"></put-attribute>
+	</definition>
+	<definition name="document/*" extends="main">
+		<put-attribute name="content" value="/WEB-INF/view/document/{1}.jsp"></put-attribute>
+	</definition>
+	<definition name="employee/*" extends="main">
+		<put-attribute name="content" value="/WEB-INF/view/employee/{1}.jsp"></put-attribute>
+	</definition>
+	<definition name="form/*" extends="main">
+		<put-attribute name="content" value="/WEB-INF/view/form/{1}.jsp"></put-attribute>
+	</definition>
+	<definition name="humanResource/*" extends="main">
+		<put-attribute name="content" value="/WEB-INF/view/humanResource/{1}.jsp"></put-attribute>
+	</definition>
+	<definition name="noticeBoard/*" extends="main">
+		<put-attribute name="content" value="/WEB-INF/view/noticeBoard/{1}.jsp"></put-attribute>
+	</definition>
+	<definition name="project/*" extends="main">
+		<put-attribute name="content" value="/WEB-INF/view/project/{1}.jsp"></put-attribute>
+	</definition>
+	<definition name="projectArchive/*" extends="main">
+		<put-attribute name="content" value="/WEB-INF/view/projectArchive/{1}.jsp"></put-attribute>
+	</definition>
+	<definition name="projectBoard/*" extends="main">
+		<put-attribute name="content" value="/WEB-INF/view/projectBoard/{1}.jsp"></put-attribute>
+	</definition>
+	
+</tiles-definitions>
+
+
+
+

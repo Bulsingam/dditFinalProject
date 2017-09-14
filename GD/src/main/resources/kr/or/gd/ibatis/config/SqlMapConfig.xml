@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMapConfig      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map Config 2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-config-2.dtd">
+<sqlMapConfig>
+	<settings cacheModelsEnabled="true" enhancementEnabled="true"
+		lazyLoadingEnabled="true" maxRequests="32" maxSessions="10"
+		maxTransactions="5" useStatementNamespaces="true" />
+	<sqlMap resource="kr/or/gd/ibatis/mapping/employee.xml"/>
+	<sqlMap resource="kr/or/gd/ibatis/mapping/join.xml"/>
+	<sqlMap resource="kr/or/gd/ibatis/mapping/humanResource.xml"/>
+	<sqlMap resource="kr/or/gd/ibatis/mapping/archive.xml"/>
+	<sqlMap resource="kr/or/gd/ibatis/mapping/form.xml"/>
+	<sqlMap resource="kr/or/gd/ibatis/mapping/project.xml"/>
+	<sqlMap resource="kr/or/gd/ibatis/mapping/projectMember.xml"/>
+	<sqlMap resource="kr/or/gd/ibatis/mapping/schedule.xml"/>
+	<sqlMap resource="kr/or/gd/ibatis/mapping/document.xml"/>
+	<sqlMap resource="kr/or/gd/ibatis/mapping/approval.xml"/>
+	<sqlMap resource="kr/or/gd/ibatis/mapping/personalSchedule.xml"/>
+	<sqlMap resource="kr/or/gd/ibatis/mapping/anonymousboard.xml"/>
+	<sqlMap resource="kr/or/gd/ibatis/mapping/projectarchive.xml"/>
+	<sqlMap resource="kr/or/gd/ibatis/mapping/projectboard.xml"/>
+	<sqlMap resource="kr/or/gd/ibatis/mapping/noticeBoard.xml"/>
+	<sqlMap resource="kr/or/gd/ibatis/mapping/companyBoard.xml"/>
+
+	
+</sqlMapConfig>
+
+
+
+
+
+

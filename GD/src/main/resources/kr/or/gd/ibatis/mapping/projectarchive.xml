@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map  2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="projectarchive">
+	<typeAlias alias="projectarchiveVO" type="kr.or.gd.vo.ProjectArchiveVO"/>
+	
+<!-- 	<sql id="selectAll"> -->
+<!-- 		SELECT * -->
+<!--     	  FROM ARCHIVE -->
+<!--     	 WHERE ARC_STA='Y'   -->
+<!-- 	</sql> -->
+	
+	<sql id="searchCondition">
+		<dynamic prepend="AND">
+			<isNotEmpty property="search_keyword">
+				<isEqual property="search_keycode" compareValue="TOTAL" open="(" close=")">
+					PRO_ARC_TITLE       LIKE '%'||#search_keyword#||'%'
+					OR EMP_NAME    LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="TITLE">
+					PRO_ARC_TITLE       LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="WRITER">
+					EMP_NAME      LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+			</isNotEmpty>
+		</dynamic>
+	</sql>
+
+    	<insert id="insertProArc" parameterClass="projectarchiveVO">
+		<selectKey resultClass="string" keyProperty="pro_arc_num">
+			SELECT PRO_ARC_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO PRO_ARCHIVE(PRO_ARC_NUM,
+								PRO_ARC_TITLE,
+								PRO_ARC_PROID,
+								PRO_ARC_WRITER,
+								PRO_ARC_FILENAME,
+								PRO_ARC_SAVENAME,
+								PRO_ARC_FILETYPE,
+								PRO_ARC_FILESIZE)
+		         	   VALUES ( #pro_arc_num#,
+								#pro_arc_title#,
+								#pro_arc_proid#,
+								#pro_arc_writer#,
+								#pro_arc_filename#,
+								#pro_arc_savename#,
+								#pro_arc_filetype#,
+								#pro_arc_filesize#)
+		</insert>
+		
+	<select id="getProArcList" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT B.*
+		  FROM (SELECT ROWNUM rnum, a.*
+			FROM ( SELECT a.*
+                        , e.*
+                  FROM PRO_ARCHIVE a LEFT OUTER JOIN EMPLOYEE e ON(a.PRO_ARC_WRITER = e.EMP_NUM)
+                  WHERE a.PRO_ARC_STA = 'Y'
+                   AND a.PRO_ARC_PROID = #pro_id#
+                 <include refid="searchCondition"/>) A) B
+		<![CDATA[ 
+   		WHERE B.rnum <= #startCount#    
+    		AND B.rnum >= #endCount#    
+   		]]>    
+		ORDER BY B.rnum DESC
+    </select>
+    
+    <!-- proScheView에서 프로젝트 자료실 리스트 -->
+	<select id="getProArcScheList" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT B.*
+		  FROM (SELECT ROWNUM rnum, a.*
+			FROM ( SELECT a.*
+                       , e.*
+                  FROM PRO_ARCHIVE a LEFT OUTER JOIN EMPLOYEE e ON(a.PRO_ARC_WRITER = e.EMP_NUM)
+                  WHERE a.PRO_ARC_STA = 'Y'
+                   AND a.PRO_ARC_PROID = #pro_id#
+                 <include refid="searchCondition"/>) A) B
+		ORDER BY B.rnum DESC
+    </select>
+    
+	<select id="totalCount" parameterClass="map" resultClass="int">
+		SELECT COUNT(*)
+		 FROM PRO_ARCHIVE a LEFT OUTER JOIN EMPLOYEE e ON(a.PRO_ARC_WRITER = e.EMP_NUM)
+		 WHERE PRO_ARC_STA = 'Y'
+		   AND PRO_ARC_PROID = #pro_id#
+		 <include refid="searchCondition"/>
+	</select>
+	
+    <update id="deleteProArc" parameterClass="string">
+    	UPDATE PRO_ARCHIVE
+    	   SET PRO_ARC_STA = 'N'
+    	 WHERE PRO_ARC_NUM = #pro_arc_num#
+    </update>
+    
+    <select id="getProArc" parameterClass="string" resultClass="projectarchiveVO">
+    	SELECT PRO_ARC_NUM
+			 , PRO_ARC_TITLE
+			 , PRO_ARC_PROID
+			 , PRO_ARC_WRITER
+			 , PRO_ARC_FILENAME
+    	  FROM PRO_ARCHIVE 
+    	 WHERE PRO_ARC_STA = 'Y'
+    	   AND PRO_ARC_NUM = #pro_arc_num#
+    </select>
+    
+	<update id="updateProArc" parameterClass="projectarchiveVO">
+		UPDATE PRO_ARCHIVE
+		   SET PRO_ARC_TITLE = #pro_arc_title#
+		     , PRO_ARC_FILENAME = #pro_arc_filename#
+             , PRO_ARC_SAVENAME = #pro_arc_savename#
+             , PRO_ARC_FILETYPE = #pro_arc_filetype#
+             , PRO_ARC_FILESIZE = #pro_arc_filesize#
+		 WHERE PRO_ARC_NUM = #pro_arc_num#
+	</update>
+	
+	<select id="download" parameterClass="map" resultClass="projectarchiveVO">
+		SELECT *
+		  FROM PRO_ARCHIVE
+		 WHERE PRO_ARC_NUM = #pro_arc_num#
+	</select>
+    
+	<update id="updateDownHit" parameterClass="map">
+		UPDATE PRO_ARCHIVE
+		  SET PRO_ARC_DOWNHIT = PRO_ARC_DOWNHIT + 1
+		 WHERE PRO_ARC_NUM = #pro_arc_num#
+	</update>
+	
+
+</sqlMap>
+
+
+
+
+
+
+
+
+
+
+

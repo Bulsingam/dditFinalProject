@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map  2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="project">
+	<typeAlias alias="projectVO" type="kr.or.gd.vo.ProjectVO"/>
+	<typeAlias alias="workRateVO" type="kr.or.gd.vo.ProjectWorkRateVO"/>
+	<sql id="selectAll">
+		SELECT *
+    	FROM   PROJECT
+    	WHERE  PRO_STA='Y'
+	</sql>
+	<sql id="projectSearch">
+		<dynamic prepend="AND">
+    		<isNotEmpty property="search_keyword">
+    			<isEqual property="search_keycode" compareValue="ALL">
+    				PRO_NAME LIKE '%'||#search_keyword#||'%'
+    				OR (MEM_ROLE LIKE 'PM'
+    					AND EMP_NAME LIKE '%'||#search_keyword#||'%')
+    				OR PRO_ID LIKE '%'||#search_keyword#||'%'
+    			</isEqual>
+    			<isEqual property="search_keycode" compareValue="PRONAME">
+    				PRO_NAME LIKE '%'||#search_keyword#||'%'
+    			</isEqual>
+    			<isEqual property="search_keycode" compareValue="PROID">
+    				PRO_ID LIKE '%'||#search_keyword#||'%'
+    			</isEqual>
+    			<isEqual property="search_keycode" compareValue="PM">
+    				MEM_ROLE LIKE 'PL'
+    				AND EMP_NAME LIKE '%'||#search_keyword#||'%'
+    			</isEqual>
+    		</isNotEmpty>
+    	</dynamic>
+	</sql>
+	<!-- 
+		프로젝트 생성 Query
+		pro_id = pro + 시퀀스(4자리)
+		status = 'Y'
+	 -->
+    <insert id="insertProject" parameterClass="projectVO">
+    	<selectKey resultClass="string" keyProperty="pro_id">
+    		SELECT 'pro'||lpad(PROJECT_SEQ.NEXTVAL,4,0) FROM DUAL
+    	</selectKey>
+    	INSERT INTO
+    	PROJECT(
+    		PRO_ID,
+			PRO_NAME,
+			PRO_STARTDATE,
+			PRO_ENDDATE,
+			PRO_STA
+    	)
+    	VALUES(
+    		#pro_id#,
+    		#pro_name#,
+    		#pro_startdate#,
+    		#pro_enddate#,
+    		'Y'
+    	)
+    </insert>
+    
+    <update id="updateProejct" parameterClass="projectVO">
+		UPDATE PROJECT
+		SET	   PRO_NAME = #pro_name#,
+			   PRO_STARTDATE = #pro_startdate#,
+			   PRO_ENDDATE = #pro_enddate#
+		WHERE  PRO_ID = #pro_id#
+    </update>
+
+    <update id="dropProject" parameterClass="string">
+    	UPDATE PROJECT
+    	SET	   PRO_STA = 'D'
+    	WHERE  PRO_ID = #proID#
+    </update>
+    
+    <!-- 
+    	프로젝트 List 불러오는 Query
+    	COUNT = PRO_ID를 COUNT하여 프로젝트에 참여한 총 인원수 출력
+    	PRO_STA가 D(삭제)인것은 출력하지 않음
+    	AND 이후는 검색기능
+     -->
+    <select id="projectList" resultClass="java.util.HashMap" parameterClass="map">
+    	SELECT	B.PRO_NAME,
+				B.PRO_ID,
+				B.EMP_NAME,
+				B.EMP_NUM,
+				B.MEM_ROLE,
+				B.PRO_STARTDATE,
+				B.PRO_ENDDATE,
+				B.PRO_STA,
+				(SELECT COUNT(*)
+				 FROM   V_PRO
+				 WHERE  V_PRO.PRO_ID = B.PRO_ID
+				 AND    MEM_STA != 'D'
+				 GROUP BY V_PRO.PRO_ID) COUNT
+		FROM(	SELECT	ROWNUM rnum,
+						A.PRO_NAME,
+						A.PRO_ID,
+						A.EMP_NAME,
+						A.EMP_NUM,
+						A.MEM_ROLE,
+						A.PRO_STARTDATE,
+						A.PRO_ENDDATE,
+						A.PRO_STA,
+						(SELECT COUNT(*)
+					 	 FROM   V_PRO
+					 	 WHERE  V_PRO.PRO_ID = A.PRO_ID
+					 	 AND    MEM_STA != 'D'
+					 	 GROUP BY V_PRO.PRO_ID) COUNT
+				FROM(	SELECT	V.PRO_NAME,
+								V.PRO_ID,
+								V.EMP_NAME,
+								V.EMP_NUM,
+								V.MEM_ROLE,
+								V.PRO_STARTDATE,
+								V.PRO_ENDDATE,
+								V.PRO_STA,
+								(SELECT COUNT(*)
+				 				 FROM   V_PRO
+				 				 WHERE  V_PRO.PRO_ID = V.PRO_ID
+				 				 AND    MEM_STA != 'D'
+				 				 GROUP BY V_PRO.PRO_ID) COUNT
+						FROM	V_PRO V
+						WHERE   V.PRO_STA != 'D'
+						AND		V.MEM_ROLE = 'PL'
+						AND     MEM_STA != 'D'
+						<dynamic prepend="AND">
+				    		<isNotEmpty property="search_keyword">
+				    			<isEqual property="search_keycode" compareValue="ALL">
+				    				V.PRO_NAME LIKE '%'||#search_keyword#||'%'
+				    				OR (V.MEM_ROLE LIKE 'PM'
+				    					AND V.EMP_NAME LIKE '%'||#search_keyword#||'%')
+				    				OR V.PRO_ID LIKE '%'||#search_keyword#||'%'
+				    			</isEqual>
+				    			<isEqual property="search_keycode" compareValue="PRONAME">
+				    				V.PRO_NAME LIKE '%'||#search_keyword#||'%'
+				    			</isEqual>
+				    			<isEqual property="search_keycode" compareValue="PROID">
+				    				V.PRO_ID LIKE '%'||#search_keyword#||'%'
+				    			</isEqual>
+				    			<isEqual property="search_keycode" compareValue="PM">
+				    				V.MEM_ROLE LIKE 'PL'
+				    				AND V.EMP_NAME LIKE '%'||#search_keyword#||'%'
+				    			</isEqual>
+				    		</isNotEmpty>
+				    	</dynamic>
+				    	ORDER BY V.PRO_ID ASC)A)B
+
+		<![CDATA[
+		WHERE	B.rnum <= #startCount#
+		AND    	B.rnum >= #endCount#
+		]]>
+		ORDER BY rnum DESC
+    	
+    </select>
+    
+    <!-- 자신이 pl로 있는 프로젝트 리스트를 불러오는 Query -->
+    <select id="plProList" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT P.PRO_ID AS PRO_ID,
+		       P.PRO_NAME AS PRO_NAME,
+		       TO_CHAR(P.PRO_STARTDATE,'yyyy-mm-dd') AS PRO_STARTDATE,
+		       TO_CHAR(P.PRO_ENDDATE,'yyyy-mm-dd') AS PRO_ENDDATE,
+		       P.PRO_STA AS PRO_STA,
+		       E.EMP_NAME AS EMP_NAME,
+		       M.MEM_EMP AS MEM_EMP,
+		       (SELECT COUNT(*)
+		        FROM V_PRO
+		        WHERE V_PRO.PRO_ID = P.PRO_ID
+		        GROUP BY V_PRO.PRO_ID) AS COUNT
+		FROM   PROJECT P INNER JOIN MEMBER M ON(P.PRO_ID = M.MEM_PROID)
+		                 INNER JOIN EMPLOYEE E ON(M.MEM_EMP = E.EMP_NUM)
+		WHERE  MEM_ROLE = 'PL'
+		AND    MEM_STA != 'D'
+		AND    MEM_EMP = #emp_num#
+    </select>
+    
+    <select id="workRateEmpList" parameterClass="map" resultClass="java.util.HashMap">
+	    SELECT PRO_ID,
+		       PRO_NAME,
+		       PRO_STARTDATE,
+		       PRO_ENDDATE,
+		       PRO_STA,
+		       MEM_EMP,
+		       MEM_ROLE,
+		       EMP_NAME,
+		       EMP_NUM
+		FROM   PROJECT INNER JOIN MEMBER ON(PRO_ID = MEM_PROID)
+					   INNER JOIN EMPLOYEE ON(MEM_EMP = EMP_NUM)
+		WHERE  PRO_ID = #pro_id#
+		AND    MEM_ROLE NOT IN 'PL'
+		AND    MEM_ROLE NOT IN 'PM'
+    </select>
+    
+    <select id="workRateInfo" parameterClass="map" resultClass="java.util.HashMap">
+    	SELECT *
+		FROM 	PRO_WORKRATE
+		WHERE 	WRT_PROID = #wrt_proid#
+		AND 	WRT_TAR = #emp_num#
+    </select>
+    
+    <insert id="insertProWorkRate" parameterClass="workRateVO">
+    	<selectKey resultClass="string" keyProperty="wrt_seq">
+			SELECT PROWORKRATE_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+    	INSERT INTO PRO_WORKRATE(WRT_SEQ,
+		                        WRT_CONT,
+		                        WRT_PROID,
+		                        WRT_TAR,
+		                        WRT_RATER,
+		                        WRT_LEV)
+		            VALUES (	#wrt_seq#,
+		                        #wrt_cont#,
+		                        #wrt_proid#,
+		                        #wrt_tar#,
+		                        #wrt_rater#,
+		                        #wrt_lev#)
+    </insert>
+    
+    <!-- 해당 프로젝트 진행 현황 bar 정보 -->
+    <select id="proBarInfo" parameterClass="string" resultClass="java.util.HashMap">
+		    SELECT (CASE 
+					WHEN ROUND((((SYSDATE - PRO_STARTDATE)/(PRO_ENDDATE - PRO_STARTDATE))*100),0)<![CDATA[ > ]]>100 THEN 100
+					WHEN ROUND((((SYSDATE - PRO_STARTDATE)/(PRO_ENDDATE - PRO_STARTDATE))*100),0)<![CDATA[ <= ]]>100 THEN ROUND((((SYSDATE - PRO_STARTDATE)/(PRO_ENDDATE - PRO_STARTDATE))*100),0)
+					END)AS RESULT
+			FROM    PROJECT
+			WHERE   PRO_ID = #pickProjectID#    
+    </select>
+    
+    <!-- 프로젝트가 종료되었을때 상태와 종료일을 업데이트하는 Query -->
+	<update id="endProject">
+		UPDATE PROJECT
+		SET	   PRO_STA = 'N'
+		WHERE  PRO_ENDDATE <![CDATA[ < ]]> SYSDATE
+	</update>
+	
+	<select id="projectTotalCount" parameterClass="map" resultClass="string">
+		SELECT 	COUNT(*)
+		FROM 	V_PRO
+		WHERE 	PRO_STA != 'D'
+		AND		MEM_ROLE = 'PL'
+		AND     MEM_STA != 'D'
+		<include refid="projectSearch"/>
+	</select>
+	<select id="ingList" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT	V.PRO_NAME,
+				V.PRO_ID,
+				V.EMP_NAME,
+				V.MEM_ROLE,
+				V.PRO_STARTDATE,
+				V.PRO_ENDDATE,
+				V.PRO_STA,
+				(SELECT COUNT(*)
+				 FROM   V_PRO
+				 WHERE  V_PRO.PRO_ID = V.PRO_ID
+				 GROUP BY V_PRO.PRO_ID) COUNT
+		FROM	V_PRO V
+		WHERE   V.PRO_STA = 'Y'
+				AND V.EMP_NUM=#emp_num#
+				AND V.MEM_OUTDATE IS NULL
+	</select>
+	
+	<!-- 종료된 프로젝트의 정보를 불러오는 Query -->
+	<select id="endList" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT	V.PRO_NAME,
+				V.PRO_ID,
+				V.EMP_NAME,
+				V.MEM_ROLE,
+				V.PRO_STARTDATE,
+				V.PRO_ENDDATE,
+				V.PRO_STA,
+				(SELECT COUNT(*)
+				 FROM   V_PRO
+				 WHERE  V_PRO.PRO_ID = V.PRO_ID
+				 GROUP BY V_PRO.PRO_ID) COUNT
+		FROM	V_PRO V
+		WHERE   V.PRO_STA = 'N'
+				AND V.EMP_NUM=#emp_num#
+	</select>
+	
+	<!-- 모든 종료된 프로젝트의 ID값을 받아오는 Query -->
+	<select id="allEndList" resultClass="string">
+		SELECT	V.PRO_ID
+		FROM	V_PRO V
+		WHERE   V.PRO_STA = 'N'
+	</select>
+</sqlMap>

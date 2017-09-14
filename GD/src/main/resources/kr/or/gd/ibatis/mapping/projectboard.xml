@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map  2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="projectboard">
+	<typeAlias alias="projectboardVO" type="kr.or.gd.vo.ProjectBoardVO"/>
+	
+<!-- 	<sql id="selectAll"> -->
+<!-- 		SELECT * -->
+<!--     	  FROM ARCHIVE -->
+<!--     	 WHERE ARC_STA='Y'   -->
+<!-- 	</sql> -->
+	
+	<sql id="searchCondition">
+		<dynamic prepend="AND">
+			<isNotEmpty property="search_keyword">
+				<isEqual property="search_keycode" compareValue="TOTAL" open="(" close=")">
+					PRO_BO_TITLE       LIKE '%'||#search_keyword#||'%'
+					OR PRO_BO_CONT    LIKE '%'||#search_keyword#||'%'
+					OR EMP_NAME  LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="TITLE">
+					PRO_BO_TITLE       LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="CONTENT">
+					PRO_BO_CONT      LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="WRITER">
+					EMP_NAME     LIKE  '%'||#search_keyword#||'%'
+				</isEqual>
+			</isNotEmpty>
+		</dynamic>
+	</sql>
+	
+	<select id="getProBoList" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT B.*
+		  FROM (SELECT ROWNUM rnum, a.*
+			FROM ( SELECT a.*
+                  , e.*
+                  FROM PRO_BOARD a LEFT OUTER JOIN EMPLOYEE e ON(a.PRO_BO_WRITER = e.EMP_NUM)
+                  WHERE a.PRO_BO_STA = 'Y'
+                   AND a.PRO_BO_PROID = #pro_id#
+                 <include refid="searchCondition"/>
+                 ORDER BY PRO_BO_GROUP, PRO_BO_SEQ DESC) A) B
+		<![CDATA[ 
+   		WHERE B.rnum <= #startCount#    
+    		AND B.rnum >= #endCount#    
+   		]]>    
+		ORDER BY B.rnum DESC
+    </select>
+    
+    <!-- proScheView에서 프로젝트 게시판 리스트 -->
+	<select id="getProBoScheList" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT B.*
+		  FROM (SELECT ROWNUM rnum, a.*
+			FROM ( SELECT a.*
+                  , e.*
+                  FROM PRO_BOARD a LEFT OUTER JOIN EMPLOYEE e ON(a.PRO_BO_WRITER = e.EMP_NUM)
+                  WHERE a.PRO_BO_STA = 'Y'
+                   AND a.PRO_BO_PROID = #pro_id#
+                 <include refid="searchCondition"/>
+                 ORDER BY PRO_BO_GROUP, PRO_BO_SEQ DESC) A) B   
+		ORDER BY B.rnum DESC
+    </select>
+    
+	<select id="totalCount" parameterClass="map" resultClass="int">
+		SELECT COUNT(*)
+		 FROM PRO_BOARD a LEFT OUTER JOIN EMPLOYEE e ON(a.PRO_BO_WRITER = e.EMP_NUM)
+		 WHERE PRO_BO_STA = 'Y'
+		   AND PRO_BO_PROID = #pro_id#
+		 <include refid="searchCondition"/>
+	</select>
+
+    <insert id="insertProBo" parameterClass="projectboardVO" >
+    <selectKey resultClass="string" keyProperty="pro_bo_num">
+    	SELECT PRO_BO_SEQ.NEXTVAL FROM DUAL
+    </selectKey>
+    	INSERT INTO PRO_BOARD(PRO_BO_NUM
+                            , PRO_BO_TITLE
+                            , PRO_BO_CONT
+                            , PRO_BO_PROID
+                            , PRO_BO_WRITER
+                            , PRO_BO_GROUP)
+                     VALUES( #pro_bo_num#
+                           , #pro_bo_title#
+                           , #pro_bo_cont#
+                           , #pro_bo_proid#
+                           , #pro_bo_writer#
+                           , #pro_bo_num#)
+    </insert>
+    
+    <select id="getProBoInfo" parameterClass="map" resultClass="java.util.HashMap">
+    	SELECT a.PRO_BO_NUM
+    		 , a.PRO_BO_TITLE
+    		 , a.PRO_BO_WRITER
+    		 , DBMS_LOB.SUBSTR(a.PRO_BO_CONT, 4000, 1) AS PRO_BO_CONT
+    		 , a.PRO_BO_PROID
+    		 , a.PRO_BO_VIEWHIT
+    		 , a.PRO_BO_REGDATE
+    		 , a.PRO_BO_GROUP
+    		 , a.PRO_BO_DEP
+    		 , a.PRO_BO_SEQ
+			 , e.EMP_NAME
+    	  FROM PRO_BOARD a LEFT JOIN EMPLOYEE e ON(a.PRO_BO_WRITER = e.EMP_NUM)
+    	 WHERE PRO_BO_STA = 'Y'
+    	   AND PRO_BO_NUM = #pro_bo_num#
+    </select>
+    
+	<update id="updateProBo" parameterClass="projectboardVO">
+		UPDATE PRO_BOARD
+		   SET PRO_BO_TITLE = #pro_bo_title#
+			 , PRO_BO_CONT = #pro_bo_cont#
+		 WHERE PRO_BO_NUM = #pro_bo_num#
+	</update>
+
+	<update id="upHit" parameterClass="map">
+		UPDATE PRO_BOARD
+		   SET PRO_BO_VIEWHIT = PRO_BO_VIEWHIT + 1
+		 WHERE PRO_BO_NUM = #pro_bo_num#
+	</update>
+    
+    <update id="deleteProBo" parameterClass="string">
+    	UPDATE PRO_BOARD
+    	   SET PRO_BO_STA = 'N'
+    	 WHERE PRO_BO_NUM = #pro_bo_num#
+    </update>
+	
+	<insert id="insertReplyProBo" parameterClass="projectboardVO">
+		<selectKey resultClass="string" keyProperty="pro_bo_num">
+			SELECT PRO_BO_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+			INSERT INTO PRO_BOARD( PRO_BO_NUM
+                                 , PRO_BO_TITLE
+                                 , PRO_BO_CONT
+                                 , PRO_BO_PROID
+                                 , PRO_BO_WRITER
+                                 , PRO_BO_SEQ
+                                 , PRO_BO_GROUP
+                                 , PRO_BO_DEP)
+		                VALUES (  #pro_bo_num#
+                                , #pro_bo_title#
+                                , #pro_bo_cont#
+                                , #pro_bo_proid#
+                                , #pro_bo_writer#
+                                , #pro_bo_seq#
+                                , #pro_bo_group#
+                                , #pro_bo_dep#)
+	</insert>
+	
+	<select id="incrementSeq" parameterClass="projectboardVO" resultClass="string">
+		SELECT MAX(PRO_BO_SEQ) + 1
+		  FROM PRO_BOARD
+		 WHERE PRO_BO_GROUP = #pro_bo_group#
+	</select>
+	
+	<update id="updateSeq" parameterClass="projectboardVO">
+		UPDATE PRO_BOARD
+		   SET PRO_BO_SEQ = pro_bo_seq + 1
+		 WHERE PRO_BO_GROUP = #pro_bo_group#
+		   AND PRO_BO_SEQ > #pro_bo_seq#
+	</update>
+    
+    
+	
+    
+
+
+
+
+
+</sqlMap>
+
+
+
+
+
+
+
+
+
+
+

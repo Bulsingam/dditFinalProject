@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map  2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="document">
+	<typeAlias alias="documentVO" type="kr.or.gd.vo.DocumentVO"/>
+	
+	<sql id="selectAll">
+		SELECT 	*
+		FROM 	DOCUMENT
+		WHERE 	DOC_STA = 'Y'  
+	</sql>
+	
+	<sql id="searchCondition">
+		<dynamic prepend="AND">
+			<isNotEmpty property="search_keyword">
+				<isEqual property="search_keycode" compareValue="TOTAL" open="(" close=")">
+					V_DOC.DOC_TITLE		LIKE '%'||#search_keyword#||'%'
+					OR V_DOC.DOC_SEND	LIKE '%'||#search_keyword#||'%'
+					OR V_DOC.DOC_RECV	LIKE '%'||#search_keyword#||'%'
+					OR V_DOC.DOC_THRU	LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="TITLE">
+					V_DOC.DOC_TITLE	LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="SEND">
+					V_DOC.DOC_SEND	LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="RECV">
+					V_DOC.DOC_RECV	LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="THRU">
+					V_DOC.DOC_THRU	LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="PRONAME">
+					V_DOC.PRO_NAME LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+			</isNotEmpty>
+		</dynamic>
+	</sql>
+	
+	<insert id="insertDoc" parameterClass="documentVO">
+		<selectKey resultClass="String" keyProperty="doc_num">
+			SELECT	TO_CHAR(SYSDATE, 'YYMM') || LTRIM(TO_CHAR(DOC_SEQ.NEXTVAL,'099'))
+			FROM 	DUAL
+		</selectKey>
+		INSERT INTO DOCUMENT (	DOC_NUM
+								, DOC_TITLE
+								, DOC_CONT
+								, DOC_SEND
+								, DOC_RECV
+								, DOC_THRU
+								, DOC_ADD1
+								, DOC_ADD2
+								, DOC_ADD3
+								, DOC_ADD4
+								, DOC_ADD5
+								, DOC_FORMNUM
+								, DOC_WRITER
+								, DOC_PROID
+								, DOC_LINENUM
+								, DOC_STA
+								, DOC_REGDATE	)
+					VALUES	 (	#doc_num#      
+								, #doc_title#
+								, #doc_cont#
+								, #doc_send#
+								, #doc_recv#
+								, #doc_thru#
+								, #doc_add1#
+								, #doc_add2#
+								, #doc_add3#
+								, #doc_add4#
+								, #doc_add5#
+								, #doc_formnum#
+								, #doc_writer#
+								, #doc_proid#
+								, #doc_linenum#
+								, 'Y'
+								, SYSDATE		)
+	</insert>
+	
+	<!-- 
+		발신함 조회 쿼리문
+		doc_writer : 작성자 사원번호
+		doc_proid : 생산 프로젝트 아이디
+	 -->
+	<sql id="sendFolder">
+		SELECT	V_DOC.*
+		FROM	V_DOC
+		WHERE	V_DOC.DET_APRSTA = 'Y'
+				AND V_DOC.DET_APRLEV = (	SELECT	COUNT(*)
+											FROM	V_DOC V
+											WHERE	V.DOC_NUM = V_DOC.DOC_NUM	)
+	</sql>
+	<select id="getSendFolder" parameterClass="Map" resultClass="HashMap">
+		SELECT	B.*
+		FROM	(	SELECT	ROWNUM RNUM
+							, A.*
+					FROM	(	<include refid="sendFolder"/>
+									<dynamic prepend="AND">
+										<isNotEmpty property="doc_writer">
+											V_DOC.DOC_WRITER = #doc_writer#
+										</isNotEmpty>
+									</dynamic>					
+									<dynamic prepend="AND">
+										<isNotEmpty property="doc_proid">
+											V_DOC.DOC_PROID = #doc_proid#
+										</isNotEmpty>
+									</dynamic>
+								<include refid="searchCondition"/>
+								ORDER BY V_DOC.DOC_REGDATE						) A	) B
+		WHERE	B.RNUM <![CDATA[<]]>= #startCount#
+				AND B.RNUM <![CDATA[>]]>= #endCount#
+		ORDER BY B.RNUM DESC	
+	</select>
+	
+	<!-- 
+		수신함 조회 쿼리문
+		doc_proid : 생산 프로젝트 아이디
+		doc_apremp : 결재자(기안자제외) 사원번호
+	 -->
+	<sql id="receiveFolder">
+		SELECT	V_DOC.*
+		FROM	V_DOC INNER JOIN	(	SELECT	A.*
+										FROM	V_DOC A
+										WHERE	A.DET_APRSTA = 'Y'
+												AND	A.DET_APRLEV = (	SELECT	COUNT(*)
+																		FROM	V_DOC V
+																		WHERE	V.DOC_NUM = A.DOC_NUM
+																		GROUP BY DOC_NUM				)) B 
+								ON (V_DOC.DOC_NUM = B.DOC_NUM)
+		WHERE	V_DOC.DET_APRLEV > 1
+	</sql>
+	<select id="getReceiveFolder" parameterClass="Map" resultClass="HashMap">
+		SELECT	B.*
+		FROM	(	SELECT	ROWNUM	RNUM
+							, A.*
+					FROM	(	<include refid="receiveFolder"/>
+									<dynamic prepend="AND">
+										<isNotEmpty property="doc_proid">
+											V_DOC.DOC_PROID = #doc_proid#
+										</isNotEmpty>
+									</dynamic>				
+									<dynamic prepend="AND">
+										<isNotEmpty property="det_apremp">
+											V_DOC.DET_APREMP = #det_apremp#
+										</isNotEmpty>
+									</dynamic>
+								<include refid="searchCondition"/>
+								ORDER BY V_DOC.DOC_REGDATE						) A	) B
+		WHERE	B.RNUM <![CDATA[<]]>= #startCount#
+				AND B.RNUM <![CDATA[>]]>= #endCount#
+		ORDER BY B.RNUM DESC
+	</select>
+	
+	<!-- 
+		반려함 조회 쿼리문
+		doc_writer	:	작성자 사원번호
+		doc_proid	:	생산 프로젝트 아이디
+	 -->
+	<sql id="refuseFolder">
+		SELECT	V_DOC.*
+		FROM	V_DOC
+		WHERE	V_DOC.DET_APRSTA = 'N'
+	</sql>
+	<select id="getRefuseFolder" parameterClass="Map" resultClass="HashMap">
+		SELECT	B.*
+		FROM	(	SELECT	ROWNUM RNUM
+							, A.*
+					FROM	(	<include refid="refuseFolder"/>					
+									<dynamic prepend="AND">
+										<isNotEmpty property="doc_proid">
+											V_DOC.DOC_PROID = #doc_proid#
+										</isNotEmpty>
+									</dynamic>
+								<include refid="searchCondition"/>
+								ORDER BY V_DOC.DOC_REGDATE					) A	) B
+		WHERE	B.RNUM <![CDATA[<]]>= #startCount#
+				AND B.RNUM <![CDATA[>]]>= #endCount#
+		ORDER BY B.RNUM DESC
+	</select>
+	
+	<!-- 
+		승인함 조회 쿼리문
+		doc_writer	:	작성자 사원번호
+		doc_proid	:	생산 프로젝트 아이디
+	 -->
+	<sql id="confirmFolder">
+		SELECT	V_DOC.*
+		FROM	V_DOC
+		WHERE	V_DOC.DET_APRSTA = 'Y'
+				AND	V_DOC.DET_APRLEV = (	SELECT	COUNT(*)
+											FROM	V_DOC V
+											WHERE	V.DOC_NUM = V_DOC.DOC_NUM
+											GROUP BY V_DOC.DOC_NUM	)
+	</sql>
+	<select id="getConfirmFolder" parameterClass="Map" resultClass="HashMap">
+		SELECT	B.*
+		FROM	(	SELECT	ROWNUM RNUM
+							, A.*
+					FROM	(	<include refid="confirmFolder"/>				
+									<dynamic prepend="AND">
+										<isNotEmpty property="doc_proid">
+											DOC_PROID = #doc_proid#
+										</isNotEmpty>
+									</dynamic>		
+								<include refid="searchCondition"/>
+								ORDER BY V_DOC.DOC_REGDATE					) A	) B
+		WHERE	B.RNUM <![CDATA[<]]>= #startCount#
+				AND B.RNUM <![CDATA[>]]>= #endCount#
+		ORDER BY B.RNUM DESC	
+	</select>
+	
+	<!-- 
+		진행 문서함 조회 쿼리문 (검증끝)
+		doc_writer	:	작성자 사원번호
+		doc_proid	:	생산 프로젝트 아이디
+	 -->
+	<sql id="progressFolder">
+		SELECT *
+		FROM (  SELECT	*
+        		FROM	V_DOC S
+        		WHERE	S.DET_APRSTA = 'Y' OR S.DET_APRSTA IS NULL
+              			AND S.DET_APRLEV <![CDATA[<]]>= (	SELECT	MIN(V.DET_APRLEV)
+                                    			FROM	V_DOC V
+                                    			WHERE	V.DOC_NUM = S.DOC_NUM
+                                          				AND V.DET_APRSTA IS NULL
+                                    			GROUP BY V.DOC_NUM	            )) V_DOC                           
+		WHERE  	V_DOC.DOC_NUM NOT IN (	SELECT	DOC_NUM
+                              			FROM 	V_DOC T
+                              			WHERE	T.DET_APRSTA = 'Y'
+                                    			AND T.DET_APRLEV = ( 	SELECT MAX(Y.DET_APRLEV)
+                                                         				FROM V_DOC Y
+                                                         				WHERE Y.DOC_NUM = T.DOC_NUM))
+       			AND V_DOC.DOC_NUM NOT IN ( 	SELECT DOC_NUM
+                              				FROM  V_DOC T
+                              				WHERE T.DET_APRSTA = 'N')																			   
+	</sql>
+	<select id="getProgressFolder" parameterClass="Map" resultClass="HashMap">
+		SELECT	B.*
+		FROM	(	SELECT	ROWNUM RNUM
+							, A.*
+					FROM	(	<include refid="progressFolder"/>                             									                                       									
+									<dynamic prepend="AND">
+										<isNotEmpty property="det_apremp">
+											V_DOC.DET_APREMP = #det_apremp#
+										</isNotEmpty>
+									</dynamic>					
+									<dynamic prepend="AND">
+										<isNotEmpty property="doc_proid">
+											V_DOC.DOC_PROID = #doc_proid#
+										</isNotEmpty>
+									</dynamic>
+									<include refid="searchCondition"/>
+									ORDER BY V_DOC.DOC_REGDATE						) A	) B
+		WHERE	B.RNUM <![CDATA[<]]>= #startCount#
+				AND B.RNUM <![CDATA[>]]>= #endCount#
+		ORDER BY B.RNUM DESC
+	</select>
+	
+	<!-- 
+		문서 조회 뷰
+		결재선 수 만큼 반환됨
+	 -->
+	<select id="getDocument" parameterClass="Map" resultClass="HashMap">
+		SELECT	V_DOC.DOC_NUM
+				, V_DOC.DOC_NUM
+				, V_DOC.DOC_TITLE
+				, V_DOC.DOC_SEND
+				, V_DOC.DOC_RECV
+				, V_DOC.DOC_THRU
+				, V_DOC.DOC_ADD1
+				, V_DOC.DOC_ADD2
+				, V_DOC.DOC_ADD3
+				, V_DOC.DOC_ADD4
+				, V_DOC.DOC_ADD5
+				, V_DOC.DOC_CONT
+				, V_DOC.DOC_REGDATE
+				, V_DOC.FORM_DATA
+				, V_DOC.FORM_NUM
+				, V_DOC.DOC_WRITER
+				, V_DOC.EMP_NAME
+				, V_DOC.DOC_PROID
+				, V_DOC.PRO_NAME
+				, V_DOC.DET_APREMP
+				, V_DOC.APR_EMPNAME
+				, V_DOC.APR_EMPPOS
+				, V_DOC.APR_EMPIMG
+				, V_DOC.DET_APRSTA
+				, V_DOC.DET_APRDATE
+				, V_DOC.DET_APRCONT
+				, V_DOC.DET_APRLEV
+				, V_DOC.FORM_PROX
+				, V_DOC.DET_LINENUM
+				, DECODE(V_DOC.DET_APRSTA, 'Y', V_DOC.APR_EMPSIGN, NULL) AS APR_EMPSIGN
+		FROM	V_DOC
+		WHERE	DOC_NUM = #doc_num#
+		ORDER BY DET_APRLEV
+	</select>
+	
+	<update id="deleteDocument" parameterClass="String">
+		UPDATE	DOCUMENT
+		SET		DOC_STA	= 'N'
+		WHERE	DOC_NUM = #doc_num#
+	</update>
+	
+	<update id="updateDocument" parameterClass="documentVO">
+		UPDATE	DOCUMENT
+		SET		DOC_TITLE		= #doc_title#
+				, DOC_CONT      = #doc_cont#
+				, DOC_SEND      = #doc_send#
+				, DOC_RECV      = #doc_recv#
+				, DOC_THRU      = #doc_thru#
+				, DOC_ADD1      = #doc_add1#
+				, DOC_ADD2      = #doc_add2#
+				, DOC_ADD3      = #doc_add3#
+				, DOC_ADD4      = #doc_add4#
+				, DOC_ADD5      = #doc_add5#
+				, DOC_FORMNUM   = #doc_formnum#
+				, DOC_LINENUM   = #doc_linenum#
+				, DOC_REGDATE   = SYSDATE
+		WHERE	DOC_NUM	= #doc_num#
+	</update>
+
+
+	<!-- getTotalCount -->
+	<select id="prgFolderTotalCount" parameterClass="Map" resultClass="Integer">
+		SELECT COUNT(*)
+		FROM (  SELECT	*
+        		FROM	V_DOC S
+        		WHERE	S.DET_APRSTA = 'Y' OR S.DET_APRSTA IS NULL
+              			AND S.DET_APRLEV <![CDATA[<]]>= (	SELECT	MIN(V.DET_APRLEV)
+                                    			FROM	V_DOC V
+                                    			WHERE	V.DOC_NUM = S.DOC_NUM
+                                          				AND V.DET_APRSTA IS NULL
+                                    			GROUP BY V.DOC_NUM	            )) V_DOC                           
+		WHERE  	V_DOC.DOC_NUM NOT IN (	SELECT	DOC_NUM
+                              			FROM 	V_DOC T
+                              			WHERE	T.DET_APRSTA = 'Y'
+                                    			AND T.DET_APRLEV = ( 	SELECT MAX(Y.DET_APRLEV)
+                                                         				FROM V_DOC Y
+                                                         				WHERE Y.DOC_NUM = T.DOC_NUM))
+       			AND V_DOC.DOC_NUM NOT IN ( 	SELECT DOC_NUM
+                              				FROM  V_DOC T
+                              				WHERE T.DET_APRSTA = 'N')
+				<dynamic prepend="AND">
+					<isNotEmpty property="det_apremp">
+						V_DOC.DET_APREMP = #det_apremp#
+					</isNotEmpty>
+				</dynamic>					
+				<dynamic prepend="AND">
+					<isNotEmpty property="doc_proid">
+						V_DOC.DOC_PROID = #doc_proid#
+					</isNotEmpty>
+				</dynamic>
+				<include refid="searchCondition"/>
+	</select>
+	<select id="sendFolderTotalCount" parameterClass="Map" resultClass="Integer">
+		SELECT	COUNT(*)
+		FROM	V_DOC
+		WHERE	V_DOC.DET_APRSTA = 'Y'
+				AND V_DOC.DET_APRLEV = (	SELECT	COUNT(*)
+											FROM	V_DOC V
+											WHERE	V.DOC_NUM = V_DOC.DOC_NUM	)
+				<dynamic prepend="AND">
+					<isNotEmpty property="doc_writer">
+						V_DOC.DOC_WRITER = #doc_writer#
+					</isNotEmpty>
+				</dynamic>		
+				<dynamic prepend="AND">
+					<isNotEmpty property="doc_proid">
+						V_DOC.DOC_PROID = #doc_proid#
+					</isNotEmpty>
+				</dynamic>
+				<include refid="searchCondition"/>
+	</select>
+	<select id="recvFolderTotalCount" parameterClass="Map" resultClass="Integer">
+		SELECT	COUNT(*)
+		FROM	V_DOC INNER JOIN	(	SELECT	A.*
+										FROM	V_DOC A
+										WHERE	A.DET_APRSTA = 'Y'
+												AND	A.DET_APRLEV = (	SELECT	COUNT(*)
+																		FROM	V_DOC V
+																		WHERE	V.DOC_NUM = A.DOC_NUM
+																		GROUP BY DOC_NUM				)) B 
+								ON (V_DOC.DOC_NUM = B.DOC_NUM)
+		WHERE	V_DOC.DET_APRLEV > 1
+				<dynamic prepend="AND">
+					<isNotEmpty property="doc_proid">
+						V_DOC.DOC_PROID = #doc_proid#
+					</isNotEmpty>
+				</dynamic>				
+				<dynamic prepend="AND">
+					<isNotEmpty property="det_apremp">
+						V_DOC.DET_APREMP = #det_apremp#
+					</isNotEmpty>
+				</dynamic>
+				<include refid="searchCondition"/>
+	</select>
+	<select id="confFolderTotalCount" parameterClass="Map" resultClass="Integer">
+		SELECT	COUNT(*)
+		FROM	V_DOC
+		WHERE	V_DOC.DET_APRSTA = 'Y'
+				AND	V_DOC.DET_APRLEV = (	SELECT	COUNT(*)
+											FROM	V_DOC V
+											WHERE	V.DOC_NUM = V_DOC.DOC_NUM
+											GROUP BY V_DOC.DOC_NUM	)
+				<dynamic prepend="AND">
+					<isNotEmpty property="doc_proid">
+						V_DOC.DOC_PROID = #doc_proid#
+					</isNotEmpty>
+				</dynamic>
+<!-- 				<dynamic prepend="AND"> -->
+<!-- 					<isNotEmpty property="doc_writer"> -->
+<!-- 						V_DOC.DOC_WRITER = #doc_writer# -->
+<!-- 					</isNotEmpty> -->
+<!-- 				</dynamic>	 -->
+				<include refid="searchCondition"/>							
+	</select>
+	<select id="refFolderTotalCount" parameterClass="Map" resultClass="Integer">
+		SELECT	COUNT(*)
+		FROM	V_DOC
+		WHERE	V_DOC.DET_APRSTA = 'N'
+				<dynamic prepend="AND">
+					<isNotEmpty property="doc_proid">
+						V_DOC.DOC_PROID = #doc_proid#
+					</isNotEmpty>
+				</dynamic>
+<!-- 				<dynamic prepend="AND"> -->
+<!-- 					<isNotEmpty property="doc_writer"> -->
+<!-- 						V_DOC.DOC_WRITER = #doc_writer# -->
+<!-- 					</isNotEmpty> -->
+<!-- 				</dynamic> -->
+				<include refid="searchCondition"/>
+	</select>
+</sqlMap>

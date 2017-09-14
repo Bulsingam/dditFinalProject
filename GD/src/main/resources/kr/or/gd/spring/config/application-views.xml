@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	
+	<!-- 
+		json 형식의 문자열을 변환.
+		Map.put("flag","yes");
+		
+		
+		ModelAndView.addObject(map);
+		ModelAndView.addObject(memberVO);
+		ModelAndView.setViewName("jsonConvertView");
+	
+	 -->
+	
+	<bean name="jsonConvertView" class="org.springframework.web.servlet.view.json.MappingJackson2JsonView"></bean>
+
+</beans>

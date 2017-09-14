@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:c="http://www.springframework.org/schema/c"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd">
+	
+	<!--
+		 스프링 프레임웍의 다국어 언어 서비스를 위한 설정 
+			1. 서버에서 작성되어 클라이언트에 전송되는 javascript, html 코드에 
+				클라이언트의 지역정보 (요청시의 요청 헤더에 포함되는 정보 : Accept-language) 참조하여 다국어 서비스를 
+				클라이언트에 전송.
+			2. 서버 내에서 해당 요청을 처리하는 과정에서 다국어 처리. 
+				
+		 클라이언트 요청 지역정보를 기초로 message_지역코드.properties가 선택.
+		 message_지역코드.properties가 존재하지 않는 국가에서의 클라이언트 요청 접근시에는
+		 message.properties가 선택.
+	 -->
+	<bean id="localResolver" class="org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver"></bean>
+	
+	<bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource"
+		p:basename="kr/or/gd/msg/config/message"
+		p:defaultEncoding="UTF-8">
+	</bean>
+	<bean id="messageAccesor" class="org.springframework.context.support.MessageSourceAccessor"
+		c:messageSource-ref="messageSource">
+	</bean>
+</beans>

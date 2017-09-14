@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map  2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="anonymousboard">
+	<typeAlias alias="anonymousboardVO" type="kr.or.gd.vo.AnonymousBoardVO"/>
+	<typeAlias alias="fileitemVO" type="kr.or.gd.vo.FileItemVO"/>
+	
+<!-- 	<sql id="selectAll"> -->
+<!-- 		SELECT * -->
+<!--     	  FROM ARCHIVE -->
+<!--     	 WHERE ARC_STA='Y'   -->
+<!-- 	</sql> -->
+	
+	<sql id="searchCondition">
+		<dynamic prepend="AND">
+			<isNotEmpty property="search_keyword">
+				<isEqual property="search_keycode" compareValue="TOTAL" open="(" close=")">
+					ANY_TITLE       LIKE '%'||#search_keyword#||'%'
+					OR ANY_CONT    LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="TITLE">
+					ANY_TITLE       LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="CONTENT">
+					ANY_CONT      LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="EMP_NUMER">
+					EMP_NUM  LIKE  '%'||#search_keyword#||'%'
+				</isEqual>
+			</isNotEmpty>
+		</dynamic>
+	</sql>
+
+    	<insert id="insertAnyBo" parameterClass="anonymousboardVO">
+		<selectKey resultClass="string" keyProperty="any_postnum">
+			SELECT ANONYMOUS_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO ANONYMOUS( ANY_POSTNUM
+		                   	 , ANY_TITLE
+		                	 , ANY_CONT
+		                	 , ANY_WRITER
+		              		 , ANY_POSTGROUP)
+		         	   VALUES (#any_postnum#
+		           		     , #any_title#
+		            		 , #any_cont#
+		             		 , #any_writer#
+		             		 , #any_postnum#)
+		</insert>
+		
+   <insert id="insertFileItem" parameterClass="fileitemVO">
+		<selectKey keyProperty="file_seq">
+			SELECT ANY_FILE_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO ANY_FILE(FILE_SEQ,
+							 FILE_NAME,
+							 FILE_SAVENAME,
+							 FILE_TYPE,
+							 FILE_SIZE,
+							 FILE_POSTNUM)
+					 VALUES( #file_seq#,
+							 #file_name#,
+							 #file_savename#,
+							 #file_type#,
+							 #file_size#,
+							 #file_postnum#)
+	</insert>
+	
+	<select id="getAnyBoList" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT B.*
+		  FROM (SELECT ROWNUM rnum, a.*
+			FROM (SELECT a.*
+                , e.*
+                 FROM ANONYMOUS a LEFT OUTER JOIN EMPLOYEE e ON(a.ANY_WRITER = e.EMP_NUM)
+                 WHERE a.ANY_STA = 'Y'
+                 <include refid="searchCondition"/>
+		         ORDER BY ANY_POSTGROUP, ANY_POSTSEQ DESC) A) B
+		<![CDATA[ 
+ 		WHERE B.rnum <= #startCount#  
+  		  AND B.rnum >= #endCount#  
+ 		]]>  
+		ORDER BY B.rnum DESC
+    </select>
+    
+	<select id="totalCount" parameterClass="map" resultClass="int">
+		SELECT COUNT(*)
+		 FROM ANONYMOUS a LEFT OUTER JOIN EMPLOYEE e ON(a.ANY_WRITER = e.EMP_NUM)
+		 WHERE ANY_STA = 'Y'
+		 <include refid="searchCondition"/>
+	</select>
+    
+    <select id="getAnyBoInfo" parameterClass="map" resultClass="java.util.HashMap">
+    	SELECT ANY_POSTNUM
+    		 , ANY_TITLE
+    		 , ANY_WRITER
+    		 , DBMS_LOB.SUBSTR(ANY_CONT, 4000, 1) AS ANY_CONT
+    		 , ANY_VIEWHIT
+    		 , ANY_REGDATE
+    		 , ANY_POSTGROUP
+    		 , ANY_POSTDEP
+    		 , ANY_POSTSEQ
+    	  FROM ANONYMOUS 
+    	 WHERE ANY_STA = 'Y'
+    	   AND ANY_POSTNUM = #any_postnum#
+    </select>
+    
+	<update id="updateFileDownHit" parameterClass="map">
+		UPDATE ANY_FILE
+		  SET FILE_DOWNHIT = FILE_DOWNHIT + 1
+		 WHERE FILE_SEQ = #file_seq#
+	</update>
+	
+	<select id="fileItemInfo" parameterClass="map" resultClass="fileitemVO">
+		SELECT *
+		  FROM ANY_FILE
+		 WHERE FILE_SEQ = #file_seq#
+	</select>
+	
+	<update id="updataAnyBo" parameterClass="anonymousboardVO">
+		UPDATE ANONYMOUS
+		   SET ANY_TITLE = #any_title#
+			 , ANY_CONT = #any_cont#
+		 WHERE ANY_POSTNUM = #any_postnum#
+	</update>
+    
+    <update id="deleteAnyBo" parameterClass="map">
+    	UPDATE ANONYMOUS
+    	   SET ANY_STA = 'N'
+    	 WHERE ANY_POSTNUM = #any_postnum#
+    </update>
+	
+	<update id="uphit" parameterClass="map">
+		UPDATE ANONYMOUS
+		   SET ANY_VIEWHIT = ANY_VIEWHIT + 1
+		 WHERE ANY_POSTNUM = #any_postnum#
+	</update>
+
+	<insert id="insertReplyAnyBo" parameterClass="anonymousboardVO">
+		<selectKey resultClass="string" keyProperty="any_postnum">
+			SELECT ANONYMOUS_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+			INSERT INTO ANONYMOUS( ANY_POSTNUM
+		                       , ANY_TITLE
+		                       , ANY_CONT
+		                       , ANY_WRITER
+		                       , ANY_POSTGROUP
+		                       , ANY_POSTDEP
+		                       , ANY_POSTSEQ)
+		               VALUES ( #any_postnum#
+		                      , #any_title#
+		                      , #any_cont#
+		                      , #any_writer#
+		                      , #any_postgroup#
+		                      , #any_postdep#
+		                      , #any_postseq#)
+	</insert>
+	
+	<select id="incrementSeq" parameterClass="anonymousboardVO" resultClass="string">
+		SELECT MAX(ANY_POSTSEQ) + 1
+		  FROM ANONYMOUS
+		 WHERE ANY_POSTGROUP = #any_postgroup#
+	</select>
+	
+	<update id="updateSeq" parameterClass="anonymousboardVO">
+		UPDATE ANONYMOUS
+		   SET ANY_POSTSEQ = ANY_POSTSEQ + 1
+		 WHERE ANY_POSTGROUP = #any_postgroup#
+		   AND ANY_POSTSEQ > #any_postseq#
+	</update>
+
+	<update id="deleteAnyBoFile" parameterClass="fileitemVO">
+		UPDATE ANY_FILE
+		   SET FILE_STA = 'N'
+		 WHERE FILE_POSTNUM = #file_postnum#
+	</update>
+
+	<select id="getFileInfo" parameterClass="map" resultClass="fileitemVO">
+		SELECT *
+		  FROM ANY_FILE
+		 WHERE FILE_POSTNUM = #any_postnum#
+		   AND FILE_STA = 'Y'
+	</select>
+
+</sqlMap>
+
+
+
+
+
+
+
+
+
+
+

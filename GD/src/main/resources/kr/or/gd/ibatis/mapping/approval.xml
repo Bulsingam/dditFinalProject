@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map  2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="approval">
+	<typeAlias alias="approvalVO" type="kr.or.gd.vo.ApprovalLineVO"/>
+	<sql id="selectAll">
+		SELECT *
+    	  FROM APR_LINE
+	</sql>
+	
+	<insert id="insertAprLine" parameterClass="approvalVO">
+		<selectKey resultClass="String" keyProperty="line_num">
+			SELECT	LINE_SEQ.NEXTVAL
+			FROM	DUAL
+		</selectKey>
+		
+			INSERT INTO APR_LINE( 	LINE_NUM
+									, LINE_NAME
+									, LINE_STA	)
+						VALUES	(	#line_num#
+									, '테스트'
+									, 'Y'	)
+	</insert>
+	
+	<update id="fillAprLine" parameterClass="Map">
+		INSERT INTO	LINE_DETAIL	(	DET_LINENUM
+									, DET_APREMP
+									, DET_APRLEV	)
+									
+					VALUES		(	#line_num#
+									, #emp_num#
+									, #apr_lev#		)
+	</update>
+	
+	<update id="aprStaSetting" parameterClass="Map">
+		UPDATE	LINE_DETAIL
+		SET		DET_APRSTA = #det_aprsta#
+				, DET_APRCONT = #det_aprcont#
+				, DET_APRDATE = SYSDATE
+		WHERE	DET_LINENUM = #det_linenum#
+				<dynamic prepend="AND">
+					<isNotEmpty property="det_aprlev">
+						DET_APRLEV = #det_aprlev#
+					</isNotEmpty>
+				</dynamic>
+				<dynamic prepend="AND">
+					<isNotEmpty property="det_apremp">
+						DET_APREMP = #det_apremp#
+					</isNotEmpty>
+				</dynamic>
+	</update>
+	
+	<update id="deleteApprovalLine" parameterClass="String">
+		UPDATE	APR_LINE
+		SET		LINE_STA = 'N'
+		WHERE	LINE_NUM = #line_num#
+	</update>
+	
+	<select id="aprLine" parameterClass="String" resultClass="HashMap">
+		SELECT	*
+		FROM	LINE_DETAIL
+		WHERE	DET_LINENUM = #line_num#
+	</select>
+	
+</sqlMap>

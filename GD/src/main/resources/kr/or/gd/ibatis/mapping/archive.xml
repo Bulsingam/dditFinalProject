@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map  2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="archive">
+	<typeAlias alias="archiveVO" type="kr.or.gd.vo.ArchiveVO"/>
+	<typeAlias alias="fileitemVO" type="kr.or.gd.vo.FileItemVO"/>
+	
+	<sql id="selectAll">
+		SELECT *
+    	  FROM ARCHIVE
+    	 WHERE ARC_STA='Y'  
+	</sql>
+	
+	<sql id="searchCondition">
+		<dynamic prepend="AND">
+			<isNotEmpty property="search_keyword">
+				<isEqual property="search_keycode" compareValue="TOTAL" open="(" close=")">
+					ARC_TITLE       LIKE '%'||#search_keyword#||'%'
+					OR ARC_CONT    LIKE '%'||#search_keyword#||'%'
+					OR EMP_NAME  LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="TITLE">
+					ARC_TITLE       LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="CONTENT">
+					ARC_CONT      LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="WRITER">
+					EMP_NAME     LIKE  '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="EMP_NUMER">
+					EMP_NUM  LIKE  '%'||#search_keyword#||'%'
+				</isEqual>
+			</isNotEmpty>
+		</dynamic>
+	</sql>
+	
+	<select id="getArcList" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT B.*
+		  FROM (SELECT ROWNUM rnum, a.*
+			FROM (SELECT a.*
+                , e.*
+                 FROM ARCHIVE a LEFT OUTER JOIN EMPLOYEE e ON(a.ARC_WRITER = e.EMP_NUM)
+                 WHERE a.ARC_STA = 'Y'
+                 <include refid="searchCondition"/>
+		         ORDER BY ARC_POSTGROUP, ARC_POSTSEQ DESC) A) B
+		<![CDATA[ 
+		WHERE B.rnum <= #startCount# 
+ 		  AND B.rnum >= #endCount# 
+		]]> 
+		ORDER BY B.rnum DESC
+    </select>
+    
+    <select id="getArcInfo" parameterClass="map" resultClass="java.util.HashMap">
+    	SELECT a.ARC_POSTNUM
+    		 , a.ARC_TITLE
+    		 , a.ARC_WRITER
+    		 , DBMS_LOB.SUBSTR(a.ARC_CONT, 4000, 1) AS ARC_CONT
+    		 , a.ARC_VIEWHIT
+    		 , a.ARC_REGDATE
+    		 , a.ARC_POSTGROUP
+    		 , a.ARC_POSTDEP
+    		 , a.ARC_POSTSEQ
+			 , e.EMP_NAME
+    	  FROM ARCHIVE a LEFT JOIN EMPLOYEE e ON(a.ARC_WRITER = e.EMP_NUM)
+    	 WHERE a.ARC_STA = 'Y'
+    	   AND a.ARC_POSTNUM = #arc_postnum#
+    </select>
+    
+    <update id="deleteArc" parameterClass="map">
+    	UPDATE ARCHIVE
+    	   SET ARC_STA = 'N'
+    	 WHERE ARC_POSTNUM = #arc_postnum#
+    </update>
+    
+    
+    	<insert id="insertArc" parameterClass="archiveVO">
+		<selectKey resultClass="string" keyProperty="arc_postnum">
+			SELECT ARCHIVE_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO ARCHIVE( ARC_POSTNUM
+		                   , ARC_TITLE
+		                   , ARC_CONT
+		                   , ARC_WRITER
+		                   , ARC_POSTGROUP)
+		             VALUES (#arc_postnum#
+		                   , #arc_title#
+		                   , #arc_cont#
+		                   , #arc_writer#
+		                   , #arc_postnum#)
+	</insert>
+	
+	<update id="uphit" parameterClass="map">
+		UPDATE ARCHIVE
+		   SET ARC_VIEWHIT = arc_viewhit + 1
+		 WHERE ARC_POSTNUM = #arc_postnum#
+	</update>
+    
+    
+   <insert id="insertFileItem" parameterClass="fileitemVO">
+		<selectKey keyProperty="file_seq">
+			SELECT ARC_FILE_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO ARC_FILE(FILE_SEQ,
+							 FILE_NAME,
+							 FILE_SAVENAME,
+							 FILE_TYPE,
+							 FILE_SIZE,
+							 FILE_POSTNUM)
+					 VALUES( #file_seq#,
+							 #file_name#,
+							 #file_savename#,
+							 #file_type#,
+							 #file_size#,
+							 #file_postnum#)
+	</insert>
+
+	<update id="deleteArcFile" parameterClass="fileitemVO">
+		UPDATE ARC_FILE
+		   SET FILE_STA = 'N'
+		 WHERE FILE_POSTNUM = #file_postnum#
+	</update>
+
+	<update id="updateFileDownHit" parameterClass="map">
+		UPDATE ARC_FILE
+		  SET FILE_DOWNHIT = FILE_DOWNHIT + 1
+		 WHERE FILE_SEQ = #file_seq#
+	</update>
+	
+	<select id="fileItemInfo" parameterClass="map" resultClass="fileitemVO">
+		SELECT *
+		  FROM ARC_FILE
+		 WHERE FILE_SEQ = #file_seq#
+	</select>
+	
+	<update id="updateArc" parameterClass="archiveVO">
+		UPDATE ARCHIVE
+		   SET ARC_TITLE = #arc_title#
+			 , ARC_CONT = #arc_cont#
+		 WHERE ARC_POSTNUM = #arc_postnum#
+	</update>
+	
+	<insert id="insertReplyArc" parameterClass="archiveVO">
+		<selectKey resultClass="string" keyProperty="arc_postnum">
+			SELECT ARCHIVE_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+			INSERT INTO ARCHIVE( ARC_POSTNUM
+		                       , ARC_TITLE
+		                       , ARC_CONT
+		                       , ARC_WRITER
+		                       , ARC_POSTGROUP
+		                       , ARC_POSTDEP
+		                       , ARC_POSTSEQ)
+		               VALUES ( #arc_postnum#
+		                      , #arc_title#
+		                      , #arc_cont#
+		                      , #arc_writer#
+		                      , #arc_postgroup#
+		                      , #arc_postdep#
+		                      , #arc_postseq#)
+	</insert>
+	
+	<select id="incrementSeq" parameterClass="archiveVO" resultClass="string">
+		SELECT MAX(ARC_POSTSEQ) + 1
+		  FROM ARCHIVE
+		 WHERE ARC_POSTGROUP = #arc_postgroup#
+	</select>
+	
+	<update id="updateSeq" parameterClass="archiveVO">
+		UPDATE ARCHIVE
+		   SET ARC_POSTSEQ = ARC_POSTSEQ + 1
+		 WHERE ARC_POSTGROUP = #arc_postgroup#
+		   AND ARC_POSTSEQ > #arc_postseq#
+	</update>
+
+	<select id="totalCount" parameterClass="map" resultClass="int">
+		SELECT COUNT(*)
+		 FROM ARCHIVE a LEFT OUTER JOIN EMPLOYEE e ON(a.ARC_WRITER = e.EMP_NUM)
+		 WHERE ARC_STA = 'Y'
+		 <include refid="searchCondition"/>
+	</select>
+
+	<select id="getFileInfo" parameterClass="map" resultClass="fileitemVO">
+		SELECT *
+		  FROM ARC_FILE
+		 WHERE FILE_POSTNUM = #arc_postnum#
+		  AND FILE_STA = 'Y'
+	</select>
+
+</sqlMap>
+
+
+
+
+
+
+
+
+
+
+

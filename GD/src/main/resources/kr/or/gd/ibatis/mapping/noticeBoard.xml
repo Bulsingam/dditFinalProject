@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap   
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map  2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="notiboard">
+	<typeAlias alias="notiboardVO" type="kr.or.gd.vo.NoticeBoardVO"/>
+	<typeAlias alias="fileitemVO" type="kr.or.gd.vo.FileItemVO"/>
+	<sql id="selectAll">
+		SELECT *
+		FROM NOTICE
+		WHERE NOTI_STA = 'Y'
+	</sql>
+	
+<!-- 	author : 조인호  -->
+<!-- 	since : 2017-09-05 -->
+<!-- 	description :제목 내용 사원명으로 게시글검색 -->
+
+
+	<sql id="searchCondition">
+		<dynamic prepend="AND">
+<!-- 		명시된 프로퍼티속성값이 null인지 쳌 -->
+			<isNotEmpty property="search_keyword">
+				<isEqual property="search_keycode" compareValue="TOTAL" open="(" close=")">
+				
+				    NOTI_TITLE LIKE '%'|| #search_keyword#||'%'
+				    OR NOTI_CONT LIKE '%'||#search_keyword#||'%'
+				    OR EMP_NAME  LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="TITLE">
+					NOTI_TITLE LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="CONTENT">
+					NOTI_CONT LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+				<isEqual property="search_keycode" compareValue="WRITER">
+					EMP_NAME LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+			</isNotEmpty>
+		</dynamic>
+	</sql>
+	
+<!-- 	author : 조인호  -->
+<!-- 	since : 2017-09-05 -->
+<!-- 	description : 다운로드 받은 횟수 업데이트 -->
+	<update id="updateFileDownHit" parameterClass="map">
+		UPDATE NOTI_FILE
+		  SET FILE_DOWNHIT = FILE_DOWNHIT + 1
+		 WHERE FILE_SEQ = #file_seq#
+	</update>
+	
+	
+	
+<!-- 	author : 조인호  -->
+<!-- 	since : 2017-09-05 -->
+<!-- 	description : 공지게시글 리스트 출력 및  rnum 정렬-->
+
+	<select id="notiboardList"  parameterClass="map" resultClass="java.util.HashMap">
+					
+			SELECT B.*
+		  FROM (SELECT ROWNUM rnum, a.*
+			FROM (SELECT a.*
+                , e.*
+                 FROM NOTICE a LEFT OUTER JOIN EMPLOYEE e ON(a.NOTI_WRITER = e.EMP_NUM)
+                 WHERE a.NOTI_STA = 'Y'
+                 <include refid="searchCondition"/>
+		      			ORDER BY NOTI_POSTNUM ASC	 ) A) B
+		<![CDATA[ 
+		WHERE B.rnum <= #startCount# 
+ 		  AND B.rnum >= #endCount# 
+		]]> 
+		ORDER BY B.rnum DESC
+		
+		
+	
+	</select>
+	
+	
+<!-- 	author : 조인호  -->
+<!-- 	since : 2017-09-05 -->
+<!-- 	description : 공지게시글 상세페이지 select -->
+
+	<select id="notiboardInfo" parameterClass="map" resultClass="java.util.HashMap">
+	    	SELECT a.NOTI_POSTNUM
+    		 , a.NOTI_TITLE
+    		 , a.NOTI_WRITER
+    		 , DBMS_LOB.SUBSTR(a.NOTI_CONT, 4000, 1) AS NOTI_CONT
+    		 , a.NOTI_VIEWHIT
+    		 , a.NOTI_REGDATE
+    		 , f.FILE_SEQ
+    		 , f.FILE_POSTNUM
+    		 , f.FILE_NAME
+			 , f.FILE_SAVENAME
+			 , e.EMP_NAME
+    	  FROM NOTICE a LEFT OUTER JOIN NOTI_FILE f ON(a.NOTI_POSTNUM = f.FILE_POSTNUM)
+    	  LEFT JOIN EMPLOYEE e ON(a.NOTI_WRITER = e.EMP_NUM)
+    	 WHERE NOTI_STA = 'Y'
+    	   AND NOTI_POSTNUM = #noti_postnum#
+	</select>
+	
+	
+<!-- 	author : 조인호  -->
+<!-- 	since : 2017-09-05 -->
+<!-- 	description : 공지게시글 정보 수정 -->
+
+	<update id="updateNotiboardInfo" parameterClass="notiboardVO">
+		UPDATE NOTICE
+		SET NOTI_TITLE=#noti_title#
+		,NOTI_CONT=#noti_cont#
+		WHERE NOTI_POSTNUM=#noti_postnum#
+	</update>
+		
+		
+		
+<!-- 		author : 조인호  -->
+<!-- 		since : 2017-09-05 -->
+<!-- 		description :공지게시글 파일 선택 -->
+
+	<select id="fileItemInfo" parameterClass="map" resultClass="fileitemVO">
+		SELECT *
+		  FROM NOTI_FILE
+		 WHERE FILE_SEQ = #file_seq#
+	</select>
+	
+	
+	
+<!-- 	author : 조인호  -->
+<!-- 	since : 2017-09-05 -->
+<!-- 	description :공지게시글 삭제 -->
+
+	<update id="deleteNotiboardInfo" parameterClass="map">
+		UPDATE NOTICE
+		SET NOTI_STA = 'N'
+		WHERE NOTI_POSTNUM=#noti_postnum#
+	</update>
+
+
+
+<!-- 	author : 조인호  -->
+<!-- 	since : 2017-09-05 -->
+<!-- 	description : 공지게시글 등록 -->
+
+	<insert id="insertNotiInfo" parameterClass="notiboardVO">
+		<selectKey resultClass="string" keyProperty="noti_postnum">
+			SELECT 
+			NOTICE_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO NOTICE( NOTI_POSTNUM  
+							,NOTI_TITLE    
+							,NOTI_CONT     
+							,NOTI_WRITER
+							)
+						VALUES (#noti_postnum#  
+								,#noti_title#    
+								,#noti_cont#     
+								,#noti_writer#)
+						
+	</insert>
+	
+	
+
+	
+<!-- 	author : 조인호  -->
+<!-- 	since : 2017-09-05 -->
+<!-- 	description : 조회수  출력 -->
+
+	<update id="uphit" parameterClass="map">
+		UPDATE NOTICE
+		   SET NOTI_VIEWHIT = noti_viewhit + 1
+		 WHERE NOTI_POSTNUM = #noti_postnum#
+	</update>
+	
+	
+	
+	
+<!-- 	author : 조인호  -->
+<!-- 	since : 2017-09-05 -->
+<!-- 	description :페이징 구현 -->
+
+		<select id="totalCount" parameterClass="map" resultClass="int">
+		SELECT COUNT(*)
+		 FROM NOTICE a LEFT OUTER JOIN EMPLOYEE e ON(a.NOTI_WRITER = e.EMP_NUM)
+		 WHERE NOTI_STA = 'Y'
+		 <include refid="searchCondition"/>
+	  </select>
+	
+	
+	
+<!-- 	author : 조인호  -->
+<!-- 	since : 2017-09-05 -->
+<!-- 	description : 파일업로드 -->
+
+		<insert id="insertFileItem" parameterClass="fileitemVO">
+		<selectKey keyProperty="file_seq">
+			SELECT NOTI_FILE_SEQ.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO NOTI_FILE(FILE_SEQ,
+							 FILE_NAME,
+							 FILE_SAVENAME,
+							 FILE_TYPE,
+							 FILE_SIZE,
+							 FILE_POSTNUM)
+					 VALUES( #file_seq#,
+							 #file_name#,
+							 #file_savename#,
+							 #file_type#,
+							 #file_size#,
+							 #file_postnum#)
+	</insert>
+
+
+</sqlMap>   

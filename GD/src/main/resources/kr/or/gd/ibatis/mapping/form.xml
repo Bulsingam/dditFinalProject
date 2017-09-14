@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map  2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="form">
+	<typeAlias alias="formVO" type="kr.or.gd.vo.FormVO"/>
+	<sql id="selectAll">
+		SELECT *
+    	  FROM FORM
+	</sql>
+	
+	<select id="formList" parameterClass="Map" resultClass="HashMap">
+    	<include refid="selectAll"/>
+    	WHERE FORM_STAN = 'Y'
+    	<dynamic prepend="AND">
+			<isNotEmpty property="form_num">
+				FORM_NUM = #form_num#
+			</isNotEmpty>
+		</dynamic>
+    </select>
+    
+    <update id="updateFormProx" parameterClass="Map">
+    	UPDATE	FORM
+    	SET		FORM_PROX = #form_prox#
+    	WHERE	FORM_NUM = #form_num#
+    </update>
+</sqlMap>

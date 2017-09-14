@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd">
+
+	<bean name="viewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver"
+		p:prefix="/WEB-INF/view/"
+		p:suffix=".jsp"
+		p:order="3"
+		>
+	</bean>
+
+	<bean class="org.springframework.web.servlet.view.BeanNameViewResolver"
+		p:order = "2"></bean>
+	
+	<!-- 
+		@RequestMapping("main")
+		public String main(){return "main"}
+	 -->
+	<bean id="tilesViewResolver" class="org.springframework.web.servlet.view.UrlBasedViewResolver"
+		p:viewClass="org.springframework.web.servlet.view.tiles2.TilesView"
+		p:order="1">
+	</bean>
+	
+</beans>

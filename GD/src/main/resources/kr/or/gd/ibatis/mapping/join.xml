@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map  2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="join">
+	<typeAlias alias="employeeVO" type="kr.or.gd.vo.EmployeeVO"/>
+	<typeAlias alias="empAttVO" type="kr.or.gd.vo.EmployeeAttendenceVO"/>
+	<sql id="selectAll">
+		SELECT *
+    	  FROM EMPLOYEE
+    	 WHERE EMP_STA='Y'  
+	</sql>
+	
+	<!-- 로그인 체크(사원에 해당 사원의 정보가 있는지 없는지 비교) -->
+	<select id="loginCheck" parameterClass="map" resultClass="employeeVO">
+    	<include refid="selectAll"/>
+    	 AND EMP_NUM = #emp_num#
+    	 <dynamic>
+    	 	<isNotEmpty property="emp_pass" prepend="AND">
+    	 		EMP_PASS = #emp_pass# 
+    	 	</isNotEmpty>
+    	 </dynamic>
+    </select>
+    
+    <!-- 출근한 정보 유무 확인 -->
+	<select id="attCheck" parameterClass="map" resultClass="string">
+		SELECT COUNT(ATT_DATE)
+		FROM EMP_ATT
+		WHERE ATT_EMP = #emp_num#
+		AND ATT_DATE = TO_CHAR(SYSDATE,'yyyymmdd')
+	</select>
+	
+	<!-- 출근 -->
+	<insert id="insertAtt" parameterClass="map">
+		INSERT INTO EMP_ATT(ATT_DATE,
+                    ATT_EMP,
+                    ATT_APPTIME)
+            VALUES (TO_CHAR(SYSDATE,'yyyy-mm-dd'),
+                    #emp_num#,
+                    SYSDATE)
+	</insert>
+	
+	<!-- 퇴근 -->
+	<update id="updateDap" parameterClass="map">
+		UPDATE EMP_ATT
+		SET ATT_DAPTIME = SYSDATE
+		WHERE ATT_EMP = #emp_num#
+		AND ATT_DATE = TO_CHAR(SYSDATE,'yyyymmdd')
+	</update>
+	
+	<!-- 사원이 진행하고 있는 프로젝트 리스트 -->
+	<select id="EmpProList" parameterClass="map" resultClass="java.util.HashMap">
+		  SELECT PRO_ID,           
+		        PRO_NAME,     
+		       (SELECT m.MEM_EMP                
+		        FROM   MEMBER m                
+		        WHERE  m.MEM_ROLE = 'PL'                
+		        AND    m.MEM_PROID = PRO_ID
+		        AND    m.MEM_STA = 'Y')MEM_EMP  
+		 FROM PROJECT INNER JOIN MEMBER ON(PRO_ID = MEM_PROID)
+		              INNER JOIN EMPLOYEE ON(MEM_EMP = EMP_NUM)
+		 WHERE EMP_NUM = #emp_num#
+		 AND   PRO_STA = 'Y'
+		 AND   MEM_STA = 'Y'
+	</select>
+</sqlMap>

@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map  2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="hr">
+	<typeAlias alias="employeeVO" type="kr.or.gd.vo.EmployeeVO"/>
+	<typeAlias alias="positionVO" type="kr.or.gd.vo.PositionVO"/>
+	<typeAlias alias="roleVO" type="kr.or.gd.vo.RoleVO"/>
+	<sql id="selectAll">
+		SELECT *
+    	  FROM EMPLOYEE
+    	 WHERE EMP_STA='Y'  
+	</sql>
+	
+	<!-- 사원번호 체크 -->
+    <select id="empCheck" parameterClass="string" resultClass="string">
+    	SELECT EMP_NUM
+		FROM EMPLOYEE
+		WHERE EMP_NUM = TO_CHAR(SYSDATE, 'YYYYMM')||'001'
+    </select>
+    
+    <!-- 사원번호 생성(해당 년월 + 001) -->
+    <select id="firstEmpNum" parameterClass="string" resultClass="string">
+    	SELECT TO_CHAR(SYSDATE, 'YYYYMM')||'001'
+		FROM DUAL
+    </select>
+    
+    <!-- 사원번호 생성(현재 존재하는 사원ID중 가장 숫자가 큰 사원번호 +1) -->
+    <select id="secondEmpNum" parameterClass="string" resultClass="string">
+    	SELECT MAX(EMP_NUM)+1
+		FROM EMPLOYEE
+    </select>
+    
+    <!-- 사원 추가 -->
+    <insert id="insertEmp" parameterClass="employeeVO" >
+    	INSERT INTO EMPLOYEE(EMP_NUM
+							,EMP_NAME
+							,EMP_PASS
+							,EMP_REGNUM1
+							,EMP_REGNUM2
+							,EMP_ADDR
+							,EMP_TEL
+							,EMP_MAIL
+							,EMP_ROLE
+							,EMP_POS
+							,EMP_IMG
+							,EMP_SIGN)
+				VALUES(		#emp_num#
+						   ,#emp_name#
+						   ,#emp_pass#
+						   ,#emp_regnum1#
+						   ,#emp_regnum2#
+						   
+						   ,#emp_addr#
+						   ,#emp_tel#
+						   ,#emp_mail#
+						   ,#emp_role#
+						   ,#emp_pos#
+						   ,#emp_img#
+						   ,#emp_sign#)
+		<selectKey resultClass="string">
+			SELECT EMP_NAME
+			  FROM EMPLOYEE
+			 WHERE EMP_NUM = #emp_num#
+		</selectKey>
+    </insert>
+    
+    <!-- 직위 리스트 -->
+    <select id="getPositionList" resultClass="positionVO">
+    		SELECT *
+    		FROM POSITION
+    </select>
+    
+    <!-- 직책 리스트 -->
+    <select id="getRoleList" resultClass="roleVO">
+    		SELECT *
+    		FROM ROLE
+    </select>
+    
+    <!--사원에서 사원 정보 -->
+    <select id="empInfo" parameterClass="map" resultClass="employeeVO">
+    	<include refid="selectAll"/>
+    	 AND EMP_NUM = #emp_num#
+    	 <dynamic>
+    	 	<isNotEmpty property="emp_pass" prepend="AND">
+    	 		EMP_PASS = #emp_pass# 
+    	 	</isNotEmpty>
+    	 </dynamic>
+    </select>
+    
+    <!-- 사원 삭제 -->
+    <select id="deleteEmp" parameterClass="map" resultClass="employeeVO">
+    	UPDATE EMPLOYEE 
+    	SET    EMP_STA = 'N'
+    	WHERE  EMP_NUM = #emp_num#
+    </select>
+    
+    <!-- 사원 삭제뷰에 가져갈 리스트 -->
+    <select id="getEmpDeleteList" parameterClass="map" resultClass="java.util.HashMap">
+            SELECT  B.EMP_NUM
+			       ,B.EMP_NAME
+			       ,B.EMP_PASS
+			       ,B.EMP_REGNUM1
+			       ,B.EMP_REGNUM2
+			       ,B.EMP_ADDR
+			       ,B.EMP_TEL
+			       ,B.EMP_MAIL
+			       ,B.EMP_ROLE
+			       ,B.EMP_POS
+			       ,B.EMP_IMG
+			       ,B.EMP_SIGN
+			       ,B.EMP_JOINDATE
+			       ,B.EMP_STA
+			       ,B.POS_NAME
+			       ,B.POS_ID
+			       ,B.ROLE_ID
+
+		 FROM (		SELECT  ROWNUM rnum
+		 				   ,A.EMP_NUM
+			               ,A.EMP_NAME
+			               ,A.EMP_PASS
+			               ,A.EMP_REGNUM1
+			               ,A.EMP_REGNUM2
+			               ,A.EMP_ADDR
+			               ,A.EMP_TEL
+			               ,A.EMP_MAIL
+			               ,A.EMP_ROLE
+			               ,A.EMP_POS
+			               ,A.EMP_IMG
+			               ,A.EMP_SIGN
+			               ,A.EMP_JOINDATE
+			               ,A.EMP_STA
+			               ,A.POS_NAME
+			               ,A.POS_ID
+			               ,A.ROLE_ID
+					 FROM (SELECT  		EMPLOYEE.EMP_NUM      AS EMP_NUM
+						               ,EMPLOYEE.EMP_NAME     AS EMP_NAME
+						               ,EMPLOYEE.EMP_PASS     AS EMP_PASS
+						               ,EMPLOYEE.EMP_REGNUM1  AS EMP_REGNUM1
+						               ,EMPLOYEE.EMP_REGNUM2  AS EMP_REGNUM2
+						               ,EMPLOYEE.EMP_ADDR     AS EMP_ADDR
+						               ,EMPLOYEE.EMP_TEL      AS EMP_TEL
+						               ,EMPLOYEE.EMP_MAIL     AS EMP_MAIL
+						               ,EMPLOYEE.EMP_ROLE     AS EMP_ROLE
+						               ,EMPLOYEE.EMP_POS      AS EMP_POS
+						               ,EMPLOYEE.EMP_IMG      AS EMP_IMG
+						               ,EMPLOYEE.EMP_SIGN     AS EMP_SIGN
+						               ,EMPLOYEE.EMP_JOINDATE AS EMP_JOINDATE
+						               ,EMPLOYEE.EMP_STA      AS EMP_STA
+						               ,POSITION.POS_NAME     AS POS_NAME
+						               ,POSITION.POS_ID       AS POS_ID
+						               ,ROLE.ROLE_ID          AS ROLE_ID
+					        FROM 	  	EMPLOYEE INNER JOIN POSITION ON( EMPLOYEE.EMP_POS=POSITION.POS_ID)
+					                             INNER JOIN ROLE ON(EMPLOYEE.EMP_ROLE = ROLE.ROLE_ID)
+					    	WHERE  		EMPLOYEE.EMP_NUM NOT IN('201703000')
+					    	<dynamic prepend="AND">
+								<isNotEmpty property="search_keyword" >
+									<isEqual property="search_keycode" compareValue="TOTAL" open="(" close=")">
+										EMP_NUM LIKE '%'||#search_keyword#||'%'
+										OR EMP_NAME LIKE '%'||#search_keyword#||'%'
+										OR POS_NAME LIKE '%'||#search_keyword#||'%'
+									</isEqual>
+									<isEqual property="search_keycode" compareValue="EMPNUM">
+										EMP_NUM LIKE '%'||#search_keyword#||'%'
+									</isEqual>
+									<isEqual property="search_keycode" compareValue="EMPNAME">
+										EMP_NAME LIKE '%'||#search_keyword#||'%'
+									</isEqual>
+									<isEqual property="search_keycode" compareValue="EMPPOS">
+										POS_NAME LIKE '%'||#search_keyword#||'%'
+									</isEqual>
+								</isNotEmpty>
+							</dynamic>
+					        			ORDER BY EMP_NUM)A)B
+					       <![CDATA[
+							WHERE  B.rnum <= #startCount#
+					 			   AND B.rnum >= #endCount#
+					 		]]>ORDER BY B.rnum DESC
+    		
+    </select>
+    
+    <!-- 관리자에서 사원 정보 -->
+     <select id="empInfom" parameterClass="string" resultClass="java.util.HashMap">
+      		SELECT EMPLOYEE.EMP_NUM AS EMP_NUM
+					, EMPLOYEE.EMP_NAME   AS EMP_NAME
+					,EMPLOYEE.EMP_PASS   AS EMP_PASS
+					,EMPLOYEE.EMP_REGNUM1 AS EMP_REGNUM1
+					,EMPLOYEE.EMP_REGNUM2 AS EMP_REGNUM2
+					,EMPLOYEE.EMP_ADDR   AS EMP_ADDR
+					,EMPLOYEE.EMP_TEL    AS EMP_TEL
+					,EMPLOYEE.EMP_MAIL   AS EMP_MAIL
+					,EMPLOYEE.EMP_ROLE   AS EMP_ROLE
+					,EMPLOYEE.EMP_POS    AS EMP_POS
+					,EMPLOYEE.EMP_IMG    AS EMP_IMG
+					,EMPLOYEE.EMP_SIGN AS EMP_SIGN
+					,EMPLOYEE.EMP_JOINDATE AS EMP_JOINDATE
+					,POSITION.POS_NAME AS POS_NAME
+					,POSITION.POS_ID AS POS_ID
+    	  	FROM EMPLOYEE INNER JOIN POSITION ON( EMPLOYEE.EMP_POS=POSITION.POS_ID)
+    	 	WHERE EMPLOYEE.EMP_STA='Y'
+    	 	AND EMPLOYEE.EMP_NUM = #emp_num#
+    </select>
+    
+    <update id="updateEmp" parameterClass="employeeVO">
+    	UPDATE EMPLOYEE
+    		SET		 EMP_NAME      = #emp_name#
+					,EMP_PASS      = #emp_pass#
+					,EMP_REGNUM1   = #emp_regnum1#
+					,EMP_REGNUM2   = #emp_regnum2#
+					,EMP_ADDR      = #emp_addr#
+					,EMP_TEL       = #emp_tel#
+					,EMP_MAIL      = #emp_mail#
+					,EMP_ROLE      = #emp_role#
+					,EMP_POS       = #emp_pos#
+					,EMP_IMG       = #emp_img#
+					,EMP_SIGN      = #emp_sign#
+		WHERE EMP_NUM = #emp_num#
+	</update>
+	
+	<!-- 사원 출석 리스트 -->
+	<select id="empAttList" parameterClass="map" resultClass="java.util.HashMap">
+			SELECT  B.EMP_NUM     
+	               ,B.EMP_NAME    
+	               ,B.EMP_PASS    
+	               ,B.EMP_REGNUM1 
+	               ,B.EMP_REGNUM2 
+	               ,B.EMP_ADDR    
+	               ,B.EMP_TEL     
+	               ,B.EMP_MAIL    
+	               ,B.EMP_ROLE    
+	               ,B.EMP_POS     
+	               ,B.EMP_IMG     
+	               ,B.EMP_SIGN    
+	               ,B.EMP_JOINDATE
+	               ,B.EMP_STA     
+	               ,B.POS_NAME    
+	               ,B.POS_ID      
+	               ,B.ROLE_ID     
+	               ,B.ATT_DATE    
+	               ,B.ATT_APPTIME 
+	               ,B.ATT_DAPTIME 
+            FROM   (SELECT ROWNUM rnum
+            	   ,A.EMP_NUM      
+	               ,A.EMP_NAME     
+	               ,A.EMP_PASS     
+	               ,A.EMP_REGNUM1
+	               ,A.EMP_REGNUM2
+	               ,A.EMP_ADDR     
+	               ,A.EMP_TEL      
+	               ,A.EMP_MAIL     
+	               ,A.EMP_ROLE     
+	               ,A.EMP_POS      
+	               ,A.EMP_IMG      
+	               ,A.EMP_SIGN     
+	               ,A.EMP_JOINDATE
+	               ,A.EMP_STA      
+	               ,A.POS_NAME     
+	               ,A.POS_ID       
+	               ,A.ROLE_ID      
+	               ,A.ATT_DATE
+	               ,A.ATT_APPTIME
+	               ,A.ATT_DAPTIME
+            
+         FROM   (SELECT EMPLOYEE.EMP_NUM      AS EMP_NUM
+		               ,EMPLOYEE.EMP_NAME     AS EMP_NAME
+		               ,EMPLOYEE.EMP_PASS     AS EMP_PASS
+		               ,EMPLOYEE.EMP_REGNUM1  AS EMP_REGNUM1
+		               ,EMPLOYEE.EMP_REGNUM2  AS EMP_REGNUM2
+		               ,EMPLOYEE.EMP_ADDR     AS EMP_ADDR
+		               ,EMPLOYEE.EMP_TEL      AS EMP_TEL
+		               ,EMPLOYEE.EMP_MAIL     AS EMP_MAIL
+		               ,EMPLOYEE.EMP_ROLE     AS EMP_ROLE
+		               ,EMPLOYEE.EMP_POS      AS EMP_POS
+		               ,EMPLOYEE.EMP_IMG      AS EMP_IMG
+		               ,EMPLOYEE.EMP_SIGN     AS EMP_SIGN
+		               ,EMPLOYEE.EMP_JOINDATE AS EMP_JOINDATE
+		               ,EMPLOYEE.EMP_STA      AS EMP_STA
+		               ,POSITION.POS_NAME     AS POS_NAME
+		               ,POSITION.POS_ID       AS POS_ID
+		               ,ROLE.ROLE_ID          AS ROLE_ID
+		               ,TO_CHAR(EMP_ATT.ATT_DATE,'yyyy-mm-dd')      AS ATT_DATE
+		               ,TO_CHAR(EMP_ATT.ATT_APPTIME,'yyyy-mm-dd hh24 mi ss')   AS ATT_APPTIME
+		               ,TO_CHAR(EMP_ATT.ATT_DAPTIME,'yyyy-mm-dd hh24 mi ss')   AS ATT_DAPTIME
+         
+         	FROM	EMPLOYEE INNER JOIN POSITION ON( EMPLOYEE.EMP_POS = POSITION.POS_ID)
+                    	     INNER JOIN ROLE ON(EMPLOYEE.EMP_ROLE = ROLE.ROLE_ID)
+                             INNER JOIN EMP_ATT ON(EMPLOYEE.EMP_NUM = EMP_ATT.ATT_EMP)
+         	WHERE 1=1
+         	<dynamic prepend="AND">
+				<isNotEmpty property="search_keyword" >
+					<isEqual property="search_keycode" compareValue="TOTAL" open="(" close=")">
+						EMP_NUM LIKE '%'||#search_keyword#||'%'
+						OR POS_NAME LIKE '%'||#search_keyword#||'%'
+						OR EMP_NAME LIKE '%'||#search_keyword#||'%'
+						OR ATT_DATE LIKE '%'||#search_keyword#||'%'
+					</isEqual>
+					<isEqual property="search_keycode" compareValue="EMPNUM">
+						EMP_NUM LIKE '%'||#search_keyword#||'%'
+					</isEqual>
+					<isEqual property="search_keycode" compareValue="POSNAME">
+						POS_NAME LIKE '%'||#search_keyword#||'%'
+					</isEqual>
+					<isEqual property="search_keycode" compareValue="EMPNAME">
+						EMP_NAME LIKE '%'||#search_keyword#||'%'
+					</isEqual>
+					<isEqual property="search_keycode" compareValue="ATTDATE">
+						ATT_DATE LIKE '%'||#search_keyword#||'%'
+					</isEqual>
+				</isNotEmpty>
+			</dynamic>
+         	ORDER BY ATT_DATE,EMP_NUM DESC) A) B
+         <![CDATA[
+		WHERE  B.rnum <= #startCount#
+ 			   AND B.rnum >= #endCount#
+ 		]]>ORDER BY B.rnum DESC
+	</select>
+	
+	<!-- 사원 출석 총 갯수 리스트 -->
+	<select id="attTotalCount" parameterClass="map" resultClass="string">
+		  SELECT COUNT(*)
+        FROM EMP_ATT A INNER JOIN EMPLOYEE E ON(E.EMP_NUM = A.ATT_EMP)
+                      INNER JOIN POSITION P ON(E.EMP_POS = P.POS_ID)
+        WHERE 1=1
+		<dynamic prepend="AND">
+				<isNotEmpty property="search_keyword" >
+					<isEqual property="search_keycode" compareValue="TOTAL" open="(" close=")">
+						EMP_NUM LIKE '%'||#search_keyword#||'%'
+						OR POS_NAME LIKE '%'||#search_keyword#||'%'
+						OR EMP_NAME LIKE '%'||#search_keyword#||'%'
+						OR ATT_DATE LIKE '%'||#search_keyword#||'%'
+					</isEqual>
+					<isEqual property="search_keycode" compareValue="EMPNUM">
+						EMP_NUM LIKE '%'||#search_keyword#||'%'
+					</isEqual>
+					<isEqual property="search_keycode" compareValue="POSNAME">
+						POS_NAME LIKE '%'||#search_keyword#||'%'
+					</isEqual>
+					<isEqual property="search_keycode" compareValue="EMPNAME">
+						EMP_NAME LIKE '%'||#search_keyword#||'%'
+					</isEqual>
+					<isEqual property="search_keycode" compareValue="ATTDATE">
+						ATT_DATE LIKE '%'||#search_keyword#||'%'
+					</isEqual>
+				</isNotEmpty>
+			</dynamic>
+	</select>
+	
+	<select id="empWorkRateList" parameterClass="map" resultClass="java.util.HashMap">
+	SELECT 	   WRT_SEQ,
+		       DBMS_LOB.SUBSTR(WRT_CONT, 4000, 1) AS WRT_CONT,
+		       WRT_PROID,
+		       WRT_RATER,
+		       WRT_LEV,
+		       WRT_TAR,
+		       PRO_ID,
+		       PRO_NAME,
+		       MEM_ROLE
+	FROM     PRO_WORKRATE LEFT OUTER JOIN EMPLOYEE ON(WRT_TAR = EMP_NUM)
+		                  LEFT OUTER JOIN PROJECT ON(WRT_PROID = PRO_ID)
+		                  LEFT OUTER JOIN MEMBER ON(PRO_ID = MEM_PROID)
+	WHERE 	WRT_TAR = #emp_num#
+	AND   	MEM_EMP = #emp_num#
+	</select>
+	
+	<select id="deleteCount" parameterClass="map" resultClass="string">
+		SELECT 	COUNT(*)
+		FROM 	EMPLOYEE INNER JOIN POSITION ON( EMPLOYEE.EMP_POS=POSITION.POS_ID)
+		WHERE 	1=1
+		<dynamic prepend="AND">
+			<isNotEmpty property="search_keyword">
+				<isEqual property="search_keycode" compareValue="TOTAL" open="(" close=")">
+						EMP_NUM LIKE '%'||#search_keyword#||'%'
+						OR EMP_NAME LIKE '%'||#search_keyword#||'%'
+						OR POS_NAME LIKE '%'||#search_keyword#||'%'
+					</isEqual>
+					<isEqual property="search_keycode" compareValue="EMPNUM">
+						EMP_NUM LIKE '%'||#search_keyword#||'%'
+					</isEqual>
+					<isEqual property="search_keycode" compareValue="EMPNAME">
+						EMP_NAME LIKE '%'||#search_keyword#||'%'
+					</isEqual>
+					<isEqual property="search_keycode" compareValue="EMPPOS">
+						POS_NAME LIKE '%'||#search_keyword#||'%'
+				</isEqual>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+</sqlMap>

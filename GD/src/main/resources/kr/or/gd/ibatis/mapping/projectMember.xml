@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map  2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="projectMember">
+	<typeAlias alias="projectMemberVO" type="kr.or.gd.vo.ProjectMemberVO"/>
+	<sql id="selectAll">
+		SELECT *
+    	FROM   MEMBER
+	</sql>
+	
+	<!-- 
+		프로젝트에 배치된 Team의 List 출력하는 Query
+		INNER JOIN을 사용하여 동일한 프로젝트에 참여된 사원들의 이름을 불러온다.
+	 -->
+	<select id="memberList" parameterClass="string" resultClass="java.util.HashMap">
+		SELECT V.PRO_NAME,
+			   V.MEM_EMP,
+			   V.MEM_ROLE,
+       		   E.EMP_NAME
+		FROM   V_PRO V
+		INNER JOIN EMPLOYEE E
+		ON     E.EMP_NUM = V.MEM_EMP
+		WHERE  V.PRO_ID = #pro_id#
+		AND    V.MEM_STA != 'D'
+	</select>
+	
+	<!-- 프로젝트의 팀원을 추가하는 Query -->
+    <insert id="insertProjectMember" parameterClass="projectMemberVO">
+    	INSERT INTO
+    	MEMBER (
+    		MEM_INDATE,
+			MEM_PROID,
+			MEM_EMP,
+			MEM_ROLE,
+			MEM_STA
+    	)
+    	VALUES(
+    		SYSDATE,
+    		#mem_proid#,
+    		#mem_emp#,
+    		#mem_role#,
+    		'Y'
+    	)
+    </insert>
+    
+    <!-- 프로젝트에서 도중에 빠지는 팀원의 처리 Query -->
+    <update id="outProjectMember" parameterClass="projectMemberVO">
+    	UPDATE MEMBER
+		SET    MEM_OUTDATE = SYSDATE,
+			   MEM_STA = 'D'
+		WHERE  MEM_PROID = #mem_proid#
+		AND    MEM_EMP = #mem_emp#
+    </update>
+    
+    <!-- 프로젝트가 종료된 후의 팀원의 상태 처리 Query -->
+    <update id="endProject" parameterClass="string">
+    	UPDATE MEMBER
+		SET    MEM_OUTDATE = SYSDATE,
+			   MEM_STA = 'N'
+		WHERE  MEM_PROID = #pro_id#
+    </update>
+</sqlMap>

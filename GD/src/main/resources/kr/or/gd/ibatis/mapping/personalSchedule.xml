@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap      
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map  2.0//EN"      
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="perSche">
+	<typeAlias alias="empScheVO" type="kr.or.gd.vo.EmployeeScheduleVO"/>
+	<sql id="selectAll">
+		SELECT *
+    	FROM   MEMBER
+	</sql>
+	<select id="allPro" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT   mem_PROID 
+				,mem_ROLE
+				,mem_INDATE
+				,mem_OUTDATE
+		FROM MEMBER
+		WHERE MEM_EMP = #emp_num#
+	</select>
+	<select id="allSchedule" parameterClass="string" resultClass="java.util.HashMap">
+		SELECT  SCHE_NAME
+			   , SCHE_NUM 
+			   , TO_CHAR(SCHE_STARTDATE,'YYYY-MM-DD') SCHE_STARTDATE
+			   , TO_CHAR(SCHE_ENDDATE,'YYYY-MM-DD') SCHE_ENDDATE
+		FROM EMP_SCHEDULE
+		WHERE SCHE_EMP = #emp_num#
+	</select>
+	<insert id="insertPerSche" parameterClass="empScheVO">
+		
+		INSERT INTO EMP_SCHEDULE(
+				  SCHE_NUM
+				, SCHE_NAME 
+				,SCHE_STARTDATE
+				,SCHE_ENDDATE
+        		,sche_emp
+			)VALUES (
+				 EMP_SCHE_SEQ.NEXTVAL
+				,#sche_name#
+				,#sche_startdate#
+				,#sche_enddate#
+				,#sche_emp#
+			)
+		
+	</insert>
+	
+	<update id="updatePerSche" parameterClass="empScheVO">
+		update EMP_SCHEDULE
+		set	 SCHE_NAME = #sche_name#
+			,SCHE_STARTDATE = #sche_startdate#
+			,SCHE_ENDDATE = #sche_enddate#
+		where SCHE_EMP =#sche_emp# AND SCHE_NUM = #sche_num#
+	</update>
+	
+	<delete id="deletePerSche" parameterClass="empScheVO">
+		DELETE 
+		FROM EMP_SCHEDULE
+		WHERE SCHE_EMP =#sche_emp# AND SCHE_NUM = #sche_num#
+	
+	</delete>
+	<select id="empProList" parameterClass="string" resultClass="java.util.HashMap">
+		SELECT MEMBER.MEM_INDATE
+			   , MEMBER.MEM_PROID
+			   , MEMBER.MEM_EMP
+			   , MEMBER.MEM_ROLE
+			   , PROJECT.PRO_NAME
+			   , PROJECT.PRO_STARTDATE
+			   , PROJECT.PRO_ENDDATE
+		FROM MEMBER INNER JOIN PROJECT ON(PROJECT.PRO_ID = MEMBER.MEM_PROID)
+    	WHERE  MEM_EMP = #emp_num# AND PRO_STA = 'Y'
+    	AND MEMBER.MEM_OUTDATE IS NULL
+	</select>
+<!--     <insert id="insertProjectMember" parameterClass="projectMemberVO"> -->
+<!--     	INSERT INTO -->
+<!--     	MEMBER ( -->
+<!--     		MEM_INDATE, -->
+<!-- 			MEM_PROID, -->
+<!-- 			MEM_EMP, -->
+<!-- 			MEM_ROLE -->
+<!--     	) -->
+<!--     	VALUES( -->
+<!--     		#mem_indate#, -->
+<!--     		#mem_proid#, -->
+<!--     		#mem_emp#, -->
+<!--     		#mem_role# -->
+<!--     	) -->
+<!--     </insert> -->
+</sqlMap>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Context>
+   <WatchedResource>WEB-INF/web.xml</WatchedResource>
+   <!-- jdbc/ddit는 sqlmapconfig 에 value값에 있어... bagrantt 는 쌤 이메일 아이디래....... -->
+   <Resource name="jdbc/gd" auth="bagrantt" type="javax.sql.DataSource" driverClassName="oracle.jdbc.driver.OracleDriver"
+         url="jdbc:oracle:thin:@118.217.27.77:1521:XE" username="gd" password="dragon" maxActive="10"
+         maxIdle="5" removeAbandoned="true" maxWait="-1">
+   </Resource>
+</Context>
+
